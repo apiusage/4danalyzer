@@ -1,0 +1,8 @@
+1. Create requirements.txt file
+pip install pipreqs
+pipreqs C:\Users\bston\Desktop\4DApp 
+
+
+
+C:\Users\bston\Desktop\4DApp
+streamlit run main.py
