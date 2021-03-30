@@ -2,7 +2,11 @@
 pip install pipreqs
 pipreqs C:\Users\bston\Desktop\4DApp 
 
-
+2. Push to Github
+git add .
+git commit -m "first commit"
+git remote add origin https://github.com/apiusage/4danalysis.git
+git push origin master
 
 C:\Users\bston\Desktop\4DApp
 streamlit run main.py
