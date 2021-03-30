@@ -1,12 +1,21 @@
+C:\Users\bston\Desktop\4DApp
+streamlit run main.py
+
+=======================================================
 1. Create requirements.txt file
 pip install pipreqs
 pipreqs C:\Users\bston\Desktop\4DApp 
 
 2. Push to Github
 git add .
-git commit -m "first commit"
+git commit -m "Updates"
 git remote add origin https://github.com/apiusage/4danalysis.git
 git push origin master
 
-C:\Users\bston\Desktop\4DApp
-streamlit run main.py
+3. https://share.streamlit.io/
+https://www.youtube.com/watch?v=sO4IKex53JY
+
+4. Create README.md
+git add README.md main.py
+git commit -m "Updates"
+git push origin master

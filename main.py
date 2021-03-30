@@ -5,7 +5,7 @@ from resultAnalysis import run_resultAnalysis
 from digitAnalysis import run_digitAnalysis
 
 img = Image.open("logo.png")
-PAGE_CONFIG = {"page_title": "4D Analyzer", "page_icon":img, "layout":"centered", "initial_sidebar_state": "auto" }
+PAGE_CONFIG = {"page_title": "4D Analyzer", "page_icon":img, "layout":"centered", "initial_sidebar_state": "expanded" }
 st.set_page_config(**PAGE_CONFIG)
 
 def main():
