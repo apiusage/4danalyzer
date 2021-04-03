@@ -70,7 +70,6 @@ def getNumPattern(numberList):
     st.dataframe(aaaaDF)
     st.line_chart(aaaaDF, use_container_width=True)
 
-
 def isAAAA(number):
     uniqueSet = {number[0:1], number[1:2], number[2:3], number[3:4]}
     return len(uniqueSet) == 1 if True else False
