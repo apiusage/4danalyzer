@@ -34,26 +34,50 @@ def getNumPattern(numberList):
             patternDict["ABCD"].insert(0, ABCDfreq)
             del numberList[:23]
 
-    # Pattern data frame
-    patternDF = pd.DataFrame(data=patternDict)
-    st.dataframe(patternDF)
-    st.line_chart(patternDF, use_container_width=True)
-    
     # Display Total Freq
-    patternDF = patternDF.sum(axis=0)
-    data = patternDF.to_dict()
-    sumData = pd.DataFrame(data, index=[0])
-    st.dataframe(sumData)
+    st.success("Total Pattern Freq")
+    allPatternDF = pd.DataFrame(data=patternDict) 
+    st.dataframe(allPatternDF)
+
+    # Display sum pattern
+    sum_column = allPatternDF.sum(axis=0)
+    transposedSumDF = sum_column.T
+    st.dataframe(transposedSumDF)
+
+    # Pattern data frame
+    st.info("ABCD")
+    abcdDF = pd.DataFrame(data=patternDict["ABCD"])
+    st.dataframe(abcdDF)
+    st.line_chart(abcdDF, use_container_width=True)
+
+    st.info("AABC")
+    aabcDF = pd.DataFrame(data=patternDict["AABC"])
+    st.dataframe(aabcDF)
+    st.line_chart(aabcDF, use_container_width=True)
+
+    st.info("AAAB")
+    aaabDF = pd.DataFrame(data=patternDict["AAAB"])
+    st.dataframe(aaabDF)
+    st.line_chart(aaabDF, use_container_width=True)
+
+    st.info("AABB")
+    aabbDF = pd.DataFrame(data=patternDict["AABB"])
+    st.dataframe(aabbDF)
+    st.line_chart(aabbDF, use_container_width=True)
+
+    st.info("AAAA")
+    aaaaDF = pd.DataFrame(data=patternDict["AAAA"])
+    st.dataframe(aaaaDF)
+    st.line_chart(aaaaDF, use_container_width=True)
+
 
 def isAAAA(number):
     uniqueSet = {number[0:1], number[1:2], number[2:3], number[3:4]}
     return len(uniqueSet) == 1 if True else False
 
-
 def isAAAB(number):
     uniqueSet = [number[0:1], number[1:2], number[2:3], number[3:4]]
     return 3 in Counter(uniqueSet).values() if True else False
-
 
 def isAABB(number):
     uniqueSet = [number[0:1], number[1:2], number[2:3], number[3:4]]
@@ -66,7 +90,6 @@ def isAABB(number):
 def isAABC(number):
     uniqueSet = {number[0:1], number[1:2], number[2:3], number[3:4]}
     return len(uniqueSet) == 3 if True else False
-
 
 def isABCD(number):
     uniqueSet = {number[0:1], number[1:2], number[2:3], number[3:4]}
@@ -83,7 +106,6 @@ def filterList(numberList):
             numberClean.append(num)
 
     return numberClean
-
 
 def displayChart(patternDF):
     pieChart = px.pie(patternDF, values="Count", names="Pattern", title="4D Pattern")

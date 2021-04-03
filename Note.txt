@@ -1,4 +1,4 @@
-C:\Users\bston\Desktop\4DApp
+cd C:\Users\bston\Desktop\4DApp
 streamlit run main.py
 
 =======================================================
