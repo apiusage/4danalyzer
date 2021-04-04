@@ -5,6 +5,7 @@ from datetime import datetime
 import pandas as pd
 import base64
 import time
+import plotly.express as px
 
 def run_setHistory():
     scrapeAllNumbers = st.checkbox('Scrape 0000 to 9999?')
@@ -27,18 +28,30 @@ def run_Scraping(scrapeAllNumbers, numberList):
         'Content-Length':'76'
     }
 
+    # Convert milliseconds to local time
     def getDateFromDrawDate(x):
         x = x.replace('/Date(','')
         x = int(x.replace(')/',''))
         return datetime.fromtimestamp(x/1000).strftime('%Y-%m-%d')
-
+    
     def GetResultsJson(num):
         data = json.dumps({"numbers":[str(num).zfill(4)], "checkCombinations":"true", "sortTypeInteger":"1"})
         r = requests.post(url=url, data=data, headers=headers)
         ResultsData = json.loads(r.json().get('d'))[0].get('Prizes')
-        Results_df = pd.DataFrame.from_dict(ResultsData)
+        Results_df = pd.DataFrame.from_dict(ResultsData) # dict to DF
         Results_df["DrawDate"] = Results_df["DrawDate"].apply(getDateFromDrawDate,1)
         Results_df["Digit"] = str(num).zfill(4)
+        
+        # Line chart
+        dateList = Results_df['DrawDate'].values.tolist()
+        prizeCodeList = Results_df['PrizeCode'].values.tolist()
+        lineChartDF = pd.DataFrame({
+            'date': dateList,
+            'prizeCode': prizeCodeList
+        })
+        lineChartDF = lineChartDF.set_index('date')
+        st.line_chart(lineChartDF, use_container_width=True)
+        
         return Results_df
 
     my_bar = st.progress(0)
@@ -62,14 +75,13 @@ def run_Scraping(scrapeAllNumbers, numberList):
             ResultsData = None
             while ResultsData is None:
                 try:
+                    st.success(i)
                     ResultsData = GetResultsJson(i)
                 except:
                     pass
             ResultsAll = ResultsAll.append(ResultsData)
-        
+    
     st.dataframe(ResultsAll)
-    ResultsAll.to_csv('4D_Result.csv')
-
     if st.button('Download 4D Data as CSV'):
         tmp_download_link = download_link(ResultsAll, '4D_Data.csv', 'Download Data as CSV')
         st.markdown(tmp_download_link, unsafe_allow_html=True)
