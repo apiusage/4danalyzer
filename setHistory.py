@@ -10,11 +10,13 @@ def run_setHistory():
     numberList = st.text_area("Enter winning numbers list", height=150)
     numberList = filterList(numberList)
 
-    showGraph = st.checkbox('Show all graphs')
+    col1, col2 = st.beta_columns(2)
+    showGraph = col1.checkbox('Show all graphs')
+    genPermutation = col2.checkbox('Generate Permutations')
 
-    run_Scraping(numberList, showGraph)
+    run_Scraping(numberList, showGraph, genPermutation)
 
-def run_Scraping(numberList, showGraph):
+def run_Scraping(numberList, showGraph, genPermutation):
     try:
         url = 'https://www.singaporepools.com.sg/_layouts/15/FourD/FourDCommon.aspx/Get4DNumberCheckResultsJSON'
         headers = {
@@ -60,13 +62,20 @@ def run_Scraping(numberList, showGraph):
         for n in numberList:
             ResultsAll = pd.DataFrame()
             ResultsData = None
-            array = [''.join(i) for i in itertools.permutations(n, 4)]
-            array = remove_duplicates(array)
-            array = sorted(array)
+            
+            if genPermutation:
+                array = [''.join(i) for i in itertools.permutations(n, 4)]
+                array = remove_duplicates(array)
+                array = sorted(array)
+            
             while ResultsData is None:
                 try:
-                    for num in array:
-                        ResultsData = GetResultsJson(num)
+                    if genPermutation:
+                        for num in array:
+                            ResultsData = GetResultsJson(num)
+                            ResultsAll = ResultsAll.append(ResultsData)
+                    else: 
+                        ResultsData = GetResultsJson(n)
                         ResultsAll = ResultsAll.append(ResultsData)
                 except:
                     pass
