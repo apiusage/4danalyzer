@@ -72,6 +72,8 @@ def run_Scraping(numberList, showGraph):
                     pass
 
             st.success("Set: " + n)
+            ResultsAll = ResultsAll.reset_index()
+            ResultsAll = ResultsAll.sort_index(ascending=False)
             st.dataframe(ResultsAll)
             dateList = ResultsAll['DrawDate'].values.tolist()
             prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
