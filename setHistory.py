@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import pandas as pd
 import base64
+import itertools
 
 def run_setHistory():
     numberList = st.text_area("Enter winning numbers list", height=150)
@@ -50,34 +51,39 @@ def run_Scraping(numberList, showGraph):
                 'prizeCode': prizeCodeList
             })
             lineChartDF = lineChartDF.set_index('date')
-            if showGraph:    
+            if showGraph:
                 st.success(num)
                 st.line_chart(lineChartDF, use_container_width=True)
 
             return Results_df
 
-        ResultsAll = pd.DataFrame()
-        for i in numberList:
+        for n in numberList:
+            ResultsAll = pd.DataFrame()
             ResultsData = None
+            array = [''.join(i) for i in itertools.permutations(n, 4)]
+            array = remove_duplicates(array)
+            array = sorted(array)
             while ResultsData is None:
                 try:
-                    ResultsData = GetResultsJson(i)
+                    for num in array:
+                        ResultsData = GetResultsJson(num)
+                        ResultsAll = ResultsAll.append(ResultsData)
                 except:
                     pass
-            ResultsAll = ResultsAll.append(ResultsData)
-        
-        st.dataframe(ResultsAll)
 
-        dateList = ResultsAll['DrawDate'].values.tolist()
-        prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
-        lineChartDF = pd.DataFrame({
+            st.success("Set: " + n)
+            st.dataframe(ResultsAll)
+            dateList = ResultsAll['DrawDate'].values.tolist()
+            prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
+            lineChartDF = pd.DataFrame({
             'date': dateList,
             'prizeCode': prizeCodeList
-        })
-        lineChartDF = lineChartDF.set_index('date')
-        lineChartDF.sort_values(by=['date'], inplace=True, ascending=False)
-        st.line_chart(lineChartDF.head(15) , use_container_width=True)
-
+            })
+            lineChartDF = lineChartDF.set_index('date')
+            lineChartDF.sort_values(by=['date'], inplace=True, ascending=False)
+            st.line_chart(lineChartDF.head(15), use_container_width=True)
+                
+            
         if st.button('Download 4D Data as CSV'):
             tmp_download_link = download_link(ResultsAll, '4D_Data.csv', 'Download Data as CSV')
             st.markdown(tmp_download_link, unsafe_allow_html=True)
@@ -105,6 +111,8 @@ def download_link(object_to_download, download_filename, download_link_text):
 
     return f'<a href="data:file/txt;base64,{b64}" download="{download_filename}">{download_link_text}</a>'
 
+def remove_duplicates(l):
+    return list(set(l))
 
 
 
