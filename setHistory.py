@@ -7,7 +7,8 @@ import base64
 import itertools
 
 def run_setHistory():
-    numberList = st.text_area("Enter winning numbers list", height=150)
+    st.subheader("4D Set Analysis")
+    numberList = st.text_area("Enter direct / set numbers: ", height=150)
     numberList = filterList(numberList)
 
     col1, col2 = st.beta_columns(2)
@@ -55,7 +56,7 @@ def run_Scraping(numberList, showGraph, genPermutation):
             lineChartDF = lineChartDF.set_index('date')
             if showGraph:
                 st.success(num)
-                st.line_chart(lineChartDF, use_container_width=True)
+                st.line_chart(lineChartDF, use_container_width=True)    
 
             return Results_df
 
@@ -73,6 +74,8 @@ def run_Scraping(numberList, showGraph, genPermutation):
                     if genPermutation:
                         for num in array:
                             ResultsData = GetResultsJson(num)
+                            if showGraph:    
+                                st.dataframe(ResultsData['PrizeCode'].value_counts().sort_index(ascending=True))
                             ResultsAll = ResultsAll.append(ResultsData)
                     else: 
                         ResultsData = GetResultsJson(n)
@@ -83,20 +86,21 @@ def run_Scraping(numberList, showGraph, genPermutation):
             st.success("Set: " + n)
             ResultsAll = ResultsAll.reset_index()
             ResultsAll = ResultsAll.sort_index(ascending=False)
-            st.dataframe(ResultsAll)
+            st.dataframe(ResultsAll, width=400)
+            st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
+            st.dataframe(ResultsAll.groupby(['Digit']).mean())
+
             dateList = ResultsAll['DrawDate'].values.tolist()
             prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
             lineChartDF = pd.DataFrame({
-            'date': dateList,
-            'prizeCode': prizeCodeList
+                'date': dateList,
+                'prizeCode': prizeCodeList
             })
             lineChartDF = lineChartDF.set_index('date')
             lineChartDF.sort_values(by=['date'], inplace=True, ascending=False)
             st.line_chart(lineChartDF.head(15), use_container_width=True)
                 
-            
-        if st.button('Download 4D Data as CSV'):
-            tmp_download_link = download_link(ResultsAll, '4D_Data.csv', 'Download Data as CSV')
+            tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
             st.markdown(tmp_download_link, unsafe_allow_html=True)
     except:
         pass
