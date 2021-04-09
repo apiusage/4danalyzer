@@ -87,8 +87,7 @@ def run_Scraping(numberList, showGraph, genPermutation):
             except:
                 pass
             
-            checkbox = st.checkbox("Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0])) # rows
-            if checkbox:     
+            with st.beta_expander(label = "Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0])): # rows
                 dateList = ResultsAll['DrawDate'].values.tolist()
                 prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
                 lineChartDF = pd.DataFrame({
