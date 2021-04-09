@@ -86,25 +86,24 @@ def run_Scraping(numberList, showGraph, genPermutation):
                     ResultsAll = ResultsAll.append(ResultsData)
             except:
                 pass
-
-            st.success("Set: " + n)
-            st.dataframe(ResultsAll.sort_values(by=['DrawDate'], ascending=False), width=400)
-            st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
-            st.dataframe(ResultsAll['Digit'].value_counts())
-            st.write("Total Freq: " + str(ResultsAll.shape[0])) # rows
-     
-            dateList = ResultsAll['DrawDate'].values.tolist()
-            prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
-            lineChartDF = pd.DataFrame({
-                'date': dateList,
-                'prizeCode': prizeCodeList
-            })
-            lineChartDF = lineChartDF.set_index('date')
-            lineChartDF.sort_values(by=['date'], inplace=True, ascending=False)
-            st.line_chart(lineChartDF.head(15), use_container_width=True)
-                            
-            tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
-            st.markdown(tmp_download_link, unsafe_allow_html=True)
+            
+            checkbox = st.checkbox("Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0])) # rows
+            if checkbox:     
+                dateList = ResultsAll['DrawDate'].values.tolist()
+                prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
+                lineChartDF = pd.DataFrame({
+                    'date': dateList,
+                    'prizeCode': prizeCodeList
+                })
+                lineChartDF = lineChartDF.set_index('date')
+                lineChartDF.sort_values(by=['date'], inplace=True, ascending=False)
+                st.line_chart(lineChartDF.head(15), use_container_width=True)
+                st.dataframe(ResultsAll.sort_values(by=['DrawDate'], ascending=False), width=400)
+                st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
+                st.dataframe(ResultsAll['Digit'].value_counts())
+               
+                tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
+                st.markdown(tmp_download_link, unsafe_allow_html=True)
     except:
         pass
 
