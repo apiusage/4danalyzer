@@ -1,5 +1,6 @@
 cd C:\Users\bston\Desktop\4DApp
 streamlit run main.py
+streamlit run main.py --logger.level=debug
 
 =======================================================
 1. Create requirements.txt file

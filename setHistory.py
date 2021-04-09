@@ -51,14 +51,20 @@ def run_Scraping(numberList, showGraph, genPermutation):
                 return Results_df 
             else:
                 GetResultsJson(num)   
+                st.warning('This is a warning')
+
+        def getPermutation(n):
+            array = [''.join(i) for i in itertools.permutations(n, 4)]
+            array = remove_duplicates(array)
+            array = sorted(array)
+
+            return array        
 
         for n in numberList:
             ResultsAll = pd.DataFrame()
             try:
                 if genPermutation:
-                    array = [''.join(i) for i in itertools.permutations(n, 4)]
-                    array = remove_duplicates(array)
-                    array = sorted(array)
+                    array = getPermutation(n)
                     for num in array:
                         SetResultData = None
                         while SetResultData is None:
@@ -100,7 +106,7 @@ def run_Scraping(numberList, showGraph, genPermutation):
                 st.dataframe(ResultsAll.sort_values(by=['DrawDate'], ascending=False), width=400)
                 st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
                 st.dataframe(ResultsAll['Digit'].value_counts())
-               
+ 
                 tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
                 st.markdown(tmp_download_link, unsafe_allow_html=True)
     except:
