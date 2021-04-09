@@ -39,57 +39,60 @@ def run_Scraping(numberList, showGraph, genPermutation):
             return datetime.fromtimestamp(x/1000).strftime('%Y-%m-%d')
 
         def GetResultsJson(num):
-            data = json.dumps({"numbers": [str(num).zfill(4)], "checkCombinations": "true", "sortTypeInteger": "1"})
+            data = json.dumps({"numbers": [str(num).zfill(4)], "checkCombinations": "true", "sortTypeInteger": "1"})  
             r = requests.post(url=url, data=data, headers=headers)
-            ResultsData = json.loads(r.json().get('d'))[0].get('Prizes')
-            Results_df = pd.DataFrame.from_dict(ResultsData)  # dict to DF
-            Results_df["DrawDate"] = Results_df["DrawDate"].apply(getDateFromDrawDate, 1)
-            Results_df["Digit"] = str(num).zfill(4)
+            if r.ok:
+                ResultsData = json.loads(r.json().get('d'))[0].get('Prizes')
+            
+                Results_df = pd.DataFrame.from_dict(ResultsData)  # dict to DF
+                Results_df["DrawDate"] = Results_df["DrawDate"].apply(getDateFromDrawDate, 1)
+                Results_df["Digit"] = str(num).zfill(4)
 
-            # Line chart
-            dateList = Results_df['DrawDate'].values.tolist()
-            prizeCodeList = Results_df['PrizeCode'].values.tolist()
-            lineChartDF = pd.DataFrame({
-                'date': dateList,
-                'prizeCode': prizeCodeList
-            })
-            lineChartDF = lineChartDF.set_index('date')
-            if showGraph:
-                st.success(num)
-                st.line_chart(lineChartDF, use_container_width=True)    
-
-            return Results_df
+                return Results_df 
+            else:
+                GetResultsJson(num)   
 
         for n in numberList:
             ResultsAll = pd.DataFrame()
-            ResultsData = None
-            
-            if genPermutation:
-                array = [''.join(i) for i in itertools.permutations(n, 4)]
-                array = remove_duplicates(array)
-                array = sorted(array)
-            
-            while ResultsData is None:
-                try:
-                    if genPermutation:
-                        for num in array:
-                            ResultsData = GetResultsJson(num)
-                            if showGraph:    
-                                st.dataframe(ResultsData['PrizeCode'].value_counts().sort_index(ascending=True))
-                            ResultsAll = ResultsAll.append(ResultsData)
-                    else: 
+            try:
+                if genPermutation:
+                    array = [''.join(i) for i in itertools.permutations(n, 4)]
+                    array = remove_duplicates(array)
+                    array = sorted(array)
+                    for num in array:
+                        SetResultData = None
+                        while SetResultData is None:
+                            SetResultData = GetResultsJson(num) 
+                        
+                        if showGraph: 
+                            st.success(num)
+                            # Line chart
+                            dateList = SetResultData['DrawDate'].values.tolist()
+                            prizeCodeList = SetResultData['PrizeCode'].values.tolist()
+                            lineChartDF = pd.DataFrame({
+                                'date': dateList,
+                                'prizeCode': prizeCodeList
+                            })
+                            lineChartDF = lineChartDF.set_index('date')
+                            st.line_chart(lineChartDF, use_container_width=True)
+
+                            st.dataframe(SetResultData['PrizeCode'].value_counts().sort_index(ascending=True))
+
+                        ResultsAll = ResultsAll.append(SetResultData, ignore_index=True)
+                else: 
+                    ResultsData = None
+                    while ResultsData is None:
                         ResultsData = GetResultsJson(n)
-                        ResultsAll = ResultsAll.append(ResultsData)
-                except:
-                    pass
+                    ResultsAll = ResultsAll.append(ResultsData)
+            except:
+                pass
 
             st.success("Set: " + n)
-            ResultsAll = ResultsAll.reset_index()
-            ResultsAll = ResultsAll.sort_index(ascending=False)
-            st.dataframe(ResultsAll, width=400)
+            st.dataframe(ResultsAll.sort_values(by=['DrawDate'], ascending=False), width=400)
             st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
-            st.dataframe(ResultsAll.groupby(['Digit']).mean())
-
+            st.dataframe(ResultsAll['Digit'].value_counts())
+            st.write("Total Freq: " + str(ResultsAll.shape[0])) # rows
+     
             dateList = ResultsAll['DrawDate'].values.tolist()
             prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
             lineChartDF = pd.DataFrame({
@@ -99,7 +102,7 @@ def run_Scraping(numberList, showGraph, genPermutation):
             lineChartDF = lineChartDF.set_index('date')
             lineChartDF.sort_values(by=['date'], inplace=True, ascending=False)
             st.line_chart(lineChartDF.head(15), use_container_width=True)
-                
+                            
             tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
             st.markdown(tmp_download_link, unsafe_allow_html=True)
     except:
@@ -128,6 +131,3 @@ def download_link(object_to_download, download_filename, download_link_text):
 
 def remove_duplicates(l):
     return list(set(l))
-
-
-
