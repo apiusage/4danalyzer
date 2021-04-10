@@ -51,7 +51,6 @@ def run_Scraping(numberList, showGraph, genPermutation):
                 return Results_df 
             else:
                 GetResultsJson(num)   
-                st.warning('This is a warning')
 
         def getPermutation(n):
             array = [''.join(i) for i in itertools.permutations(n, 4)]

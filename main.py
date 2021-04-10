@@ -5,7 +5,8 @@ from setAnalysis import run_setAnalysis
 from resultAnalysis import run_resultAnalysis
 from digitAnalysis import run_digitAnalysis
 from setHistory import run_setHistory
-
+from scraping import run_scraping
+ 
 img = Image.open("logo.png")
 PAGE_CONFIG = {"page_title": "4D Analyzer", "page_icon":img, "layout":"centered", "initial_sidebar_state": "expanded" }
 st.set_page_config(**PAGE_CONFIG)
@@ -19,7 +20,7 @@ LOGO_BANNER = """
 def main():
     stc.html(LOGO_BANNER)
 
-    menu = ["Home", "Set Analysis", "Result Analysis", "Digit Analysis", "Set History", "About"]
+    menu = ["Home", "Set Analysis", "Result Analysis", "Digit Analysis", "Set History", "Run Scraping", "About"]
     choice = st.sidebar.selectbox("Menu", menu)
 
     if choice == "Home":
@@ -31,7 +32,9 @@ def main():
     elif choice == "Digit Analysis":
         run_digitAnalysis()   
     elif choice == "Set History":
-        run_setHistory()     
+        run_setHistory()   
+    elif choice == "Run Scraping":
+        run_scraping()  
     else:
         st.subheader("About")
 
