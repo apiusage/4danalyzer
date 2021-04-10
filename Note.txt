@@ -5,7 +5,7 @@ streamlit run main.py --logger.level=debug
 =======================================================
 1. Create requirements.txt file
 pip install pipreqs
-pipreqs C:\Users\bston\Desktop\4DApp 
+pipreqs --encoding=utf8 C:\Users\bston\Desktop\4DApp --force
 
 2. Push to Github
 git add .
