@@ -29,9 +29,13 @@ def run_scraping():
 
     topPrizesDF = pd.DataFrame(columns=['1st Prize', '2nd Prize', '3rd Prize'])
     allResult = []
+    my_bar = st.progress(0)
+    current_count = 0
     for date in dates:
         url = "http://www.singaporepools.com.sg/en/4d/Pages/Results.aspx?" + date.xpath("@querystring")[0]
         drawPage = requests.get(url, headers=HEADERS)
+        if (drawPage.ok):
+            current_count += 1
         soup = BeautifulSoup(drawPage.content, "html.parser")
         dom = etree.HTML(str(soup))
 
@@ -51,7 +55,11 @@ def run_scraping():
         allResult.extend([fPrize, sPrize, tPrize])
         allResult.extend(starters)
         allResult.extend(consolations)
-    
+        
+        current_percent = percentage(current_count, len(dates))
+        my_bar.progress(int(current_percent))
+
+    st.balloons()
     allResultDF = pd.DataFrame (allResult, columns=['All Numbers'])
     finalDF = pd.concat([topPrizesDF, allResultDF], axis=1)
     st.dataframe(finalDF)
@@ -72,4 +80,5 @@ def get_table_download_link(df):
     b64 = base64.b64encode(val) 
     return f'<a href="data:application/octet-stream;base64,{b64.decode()}" download="{filename}">Download Excel file</a>' # decode b'abc' => abc
 
-    
+def percentage(part, whole):
+  return 100 * float(part)/float(whole)
