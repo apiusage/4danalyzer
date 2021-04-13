@@ -7,7 +7,7 @@ import base64
 import itertools
 
 def run_setHistory():
-    st.subheader("4D Set Analysis")
+    st.info("__4D Set Analysis__")
     numberList = st.text_area("Enter direct / set numbers: ", height=150)
     numberList = filterList(numberList)
 

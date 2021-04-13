@@ -1,19 +1,14 @@
 import streamlit as st 
 import pandas as pd 
-import streamlit.components.v1 as stc 
 
 def run_setAnalysis():
-    st.subheader("4D Sets Data Analysis")
-    stc.iframe("https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx",
-		height=700,width=300,
-		scrolling=True
-		)
+    st.info("__4D Sets Freq Analysis__")
 
     df = pd.read_csv("data/4D Sets.csv")
     # add zero leadings to 4D numbers
     df['Number'] = df['Number'].apply(lambda num: '{0:0>4}'.format(num))
 
-    numberList = st.text_area("Enter numbers", height=150)
+    numberList = st.text_area("Enter set numbers: ", height=150)
     st.table(filterList(df, numberList))
 
     st.dataframe(df)

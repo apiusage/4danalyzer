@@ -4,7 +4,8 @@ from collections import Counter
 import plotly.express as px
 
 def run_resultAnalysis():
-    st.subheader("4D Pattern Analysis")
+    st.info("__4D Pattern Analysis__")
+    st.write("__*For every 23 numbers in the list, it will treat it as 1 round.*__")
 
     numberList = st.text_area("Enter winning numbers list", height=150)
     numberList = filterList(numberList)
@@ -35,7 +36,7 @@ def getNumPattern(numberList):
             del numberList[:23]
 
     # Display Total Freq
-    st.success("Total Pattern Freq")
+    st.success("__Total Pattern Freq__")
     allPatternDF = pd.DataFrame(data=patternDict) 
     st.dataframe(allPatternDF)
 

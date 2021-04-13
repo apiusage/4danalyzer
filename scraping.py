@@ -12,7 +12,8 @@ from io import BytesIO
 timestr = time.strftime("%m-%d-%Y")
 
 def run_scraping():
-    st.subheader("Ultimate 4D Scraper")
+    st.info("__Ultimate 4D Scraper__")
+    st.write("Scrape past 1st, 2nd, 3rd winning prize numbers including all winning numbers.")
 
     start_url = ("http://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/fourd_result_draw_list_en.html")
 

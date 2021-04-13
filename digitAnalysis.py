@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def run_digitAnalysis():
-    st.subheader("4D Digit Analysis")
+    st.info("__4D Digit Analysis__")
 
-    numberList = st.text_area("Enter winning numbers list", height=150)
+    numberList = st.text_area("Enter winning numbers list: ", height=150)
     numberList = filterList(numberList)
     digitAnalysis(numberList)
 
@@ -26,28 +26,28 @@ def digitAnalysis(numberList):
 
     st.info("Digit 1")
     digit1DF = pd.DataFrame({
-        'Round': RoundNo,
+        'Round': 0,
         'Digit 1': digit1Data
     })
     st.line_chart(digit1DF, use_container_width=True)
 
     st.info("Digit 2")
     digit2DF = pd.DataFrame({
-        'Round': RoundNo,
+        'Round': 0,
         'Digit 2': digit2Data
     })
     st.line_chart(digit2DF, use_container_width=True)
 
     st.info("Digit 3")
     digit3DF = pd.DataFrame({
-        'Round': RoundNo,
+        'Round': 0,
         'Digit 3': digit3Data
     })
     st.line_chart(digit3DF, use_container_width=True)
 
     st.info("Digit 4")
     digit4DF = pd.DataFrame({
-        'Round': RoundNo,
+        'Round': 0,
         'Digit 4': digit4Data
     })
     st.line_chart(digit4DF, use_container_width=True)
