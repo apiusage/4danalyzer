@@ -7,6 +7,7 @@ def run_setAnalysis():
     df = pd.read_csv("data/4D Sets.csv")
     # add zero leadings to 4D numbers
     df['Number'] = df['Number'].apply(lambda num: '{0:0>4}'.format(num))
+    df['Digit Sum'] = df['Number'].apply(sum_digits)
 
     numberList = st.text_area("Enter set numbers: ", height=150)
     st.table(filterList(df, numberList))
@@ -30,3 +31,10 @@ def filterList(df, numberList):
 
        return filtered_df
 
+def sum_digits(n):
+    n = int(n)
+    s = 0
+    while n:
+        s += n % 10
+        n //= 10
+    return s

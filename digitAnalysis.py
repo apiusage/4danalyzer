@@ -26,28 +26,28 @@ def digitAnalysis(numberList):
 
     st.info("Digit 1")
     digit1DF = pd.DataFrame({
-        'Round': 0,
+        'Round': 9,
         'Digit 1': digit1Data
     })
     st.line_chart(digit1DF, use_container_width=True)
 
     st.info("Digit 2")
     digit2DF = pd.DataFrame({
-        'Round': 0,
+        'Round': 9,
         'Digit 2': digit2Data
     })
     st.line_chart(digit2DF, use_container_width=True)
 
     st.info("Digit 3")
     digit3DF = pd.DataFrame({
-        'Round': 0,
+        'Round': 9,
         'Digit 3': digit3Data
     })
     st.line_chart(digit3DF, use_container_width=True)
 
     st.info("Digit 4")
     digit4DF = pd.DataFrame({
-        'Round': 0,
+        'Round': 9,
         'Digit 4': digit4Data
     })
     st.line_chart(digit4DF, use_container_width=True)

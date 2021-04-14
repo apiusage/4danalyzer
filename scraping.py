@@ -21,51 +21,58 @@ def run_scraping():
             'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
             (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',\
             'Accept-Language': 'en-US, en;q=0.5'})
-  
-    webpage = requests.get(start_url, headers=HEADERS)
-    soup = BeautifulSoup(webpage.content, "html.parser")
-    dom = etree.HTML(str(soup))
 
-    dates = dom.xpath("//select/option")
-
-    topPrizesDF = pd.DataFrame(columns=['1st Prize', '2nd Prize', '3rd Prize'])
-    allResult = []
-    my_bar = st.progress(0)
-    current_count = 0
-    for date in dates:
-        url = "http://www.singaporepools.com.sg/en/4d/Pages/Results.aspx?" + date.xpath("@querystring")[0]
-        drawPage = requests.get(url, headers=HEADERS)
-        if (drawPage.ok):
-            current_count += 1
-        soup = BeautifulSoup(drawPage.content, "html.parser")
+    numOfRound = st.number_input("Number of rounds to scrape: ", 0)
+    
+    scrapeAll = st.checkbox('Scrape all') 
+    if st.button('Scrape'):
+        webpage = requests.get(start_url, headers=HEADERS)
+        soup = BeautifulSoup(webpage.content, "html.parser")
         dom = etree.HTML(str(soup))
 
-        fPrize = dom.xpath('//td[@class="tdFirstPrize"]')[0].text
-        sPrize = dom.xpath('//td[@class="tdSecondPrize"]')[0].text
-        tPrize = dom.xpath('//td[@class="tdThirdPrize"]')[0].text
+        dates = dom.xpath("//select/option")
 
-        starters = []
-        for number in dom.xpath("//tbody[@class='tbodyStarterPrizes']//td/text()") :
-            starters.append(number)
+        topPrizesDF = pd.DataFrame(columns=['1st Prize', '2nd Prize', '3rd Prize'])
+        allResult = []
+        my_bar = st.progress(0)
+        current_count = 0
+        for date in dates:
+            url = "http://www.singaporepools.com.sg/en/4d/Pages/Results.aspx?" + date.xpath("@querystring")[0]
+            drawPage = requests.get(url, headers=HEADERS)
+            if current_count == numOfRound and not scrapeAll:
+                break
+            if (drawPage.ok):
+                current_count += 1    
+            soup = BeautifulSoup(drawPage.content, "html.parser")
+            dom = etree.HTML(str(soup))
 
-        consolations = []
-        for number in dom.xpath("//tbody[@class='tbodyConsolationPrizes']//td/text()") :
-            consolations.append(number)  
+            fPrize = dom.xpath('//td[@class="tdFirstPrize"]')[0].text
+            sPrize = dom.xpath('//td[@class="tdSecondPrize"]')[0].text
+            tPrize = dom.xpath('//td[@class="tdThirdPrize"]')[0].text
 
-        topPrizesDF = topPrizesDF.append({'1st Prize': fPrize, '2nd Prize': sPrize, '3rd Prize': tPrize}, ignore_index=True)
-        allResult.extend([fPrize, sPrize, tPrize])
-        allResult.extend(starters)
-        allResult.extend(consolations)
-        
-        current_percent = percentage(current_count, len(dates))
-        my_bar.progress(int(current_percent))
+            starters = []
+            for number in dom.xpath("//tbody[@class='tbodyStarterPrizes']//td/text()") :
+                starters.append(number)
 
-    st.balloons()
-    allResultDF = pd.DataFrame (allResult, columns=['All Numbers'])
-    finalDF = pd.concat([topPrizesDF, allResultDF], axis=1)
-    st.dataframe(finalDF)
-    st.markdown("### ** 📩 ⬇️ Download 4D file **")
-    st.markdown(get_table_download_link(finalDF), unsafe_allow_html=True)    
+            consolations = []
+            for number in dom.xpath("//tbody[@class='tbodyConsolationPrizes']//td/text()") :
+                consolations.append(number)  
+
+            topPrizesDF = topPrizesDF.append({'1st Prize': fPrize, '2nd Prize': sPrize, '3rd Prize': tPrize}, ignore_index=True)
+            allResult.extend([fPrize, sPrize, tPrize])
+            allResult.extend(starters)
+            allResult.extend(consolations)
+            
+            current_percent = percentage(current_count, len(dates))
+            my_bar.progress(int(current_percent))
+
+        st.balloons()
+        allResultDF = pd.DataFrame (allResult, columns=['All Numbers'])
+        finalDF = pd.concat([topPrizesDF, allResultDF], axis=1)
+        st.dataframe(finalDF)
+        st.markdown("### ** 📩 ⬇️ Download 4D file **")
+        st.markdown(get_table_download_link(finalDF), unsafe_allow_html=True)    
+
     
 def to_excel(df):
     output = BytesIO()
