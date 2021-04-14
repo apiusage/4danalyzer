@@ -5,6 +5,7 @@ from datetime import datetime
 import pandas as pd
 import base64
 import itertools
+import xlsxwriter
 
 def run_setHistory():
     st.info("__4D Set Analysis__")
