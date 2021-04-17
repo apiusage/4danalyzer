@@ -13,6 +13,7 @@ git commit -m "Updates"
 git remote add origin https://github.com/apiusage/4danalysis.git
 git push origin master
 
+No need to redeploy
 https://share.streamlit.io/
 
 3. https://share.streamlit.io/
