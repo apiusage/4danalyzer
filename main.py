@@ -22,7 +22,7 @@ LOGO_BANNER = """
 def main():
     stc.html(LOGO_BANNER)
 
-    menu = ["Home", "Set Analysis", "Result Analysis", "Digit Analysis", "Digit Sum", "Set History", "Run Scraping", "About"]
+    menu = ["Home", "Set Analysis", "Pattern Analysis", "Digit Analysis", "Digit Sum", "Set History", "Run Scraping", "About"]
     choice = st.sidebar.selectbox("Menu", menu)
 
     if choice == "Home":
@@ -33,7 +33,7 @@ def main():
 	    )
     elif choice == "Set Analysis":
         run_setAnalysis()
-    elif choice == "Result Analysis":
+    elif choice == "Pattern Analysis":
         run_resultAnalysis()
     elif choice == "Digit Analysis":
         run_digitAnalysis()
