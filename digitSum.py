@@ -27,6 +27,7 @@ def run_digitSum():
         topPrizesDF = pd.DataFrame(columns=['1st Prize', '2nd Prize', '3rd Prize'])
         my_bar = st.progress(0)
         current_count = 0
+        digitSum = {"1st Prize": [], "2nd Prize": [], "3rd Prize": []}
         for date in dates:
             url = "http://www.singaporepools.com.sg/en/4d/Pages/Results.aspx?" + date.xpath("@querystring")[0]
             drawPage = requests.get(url, headers=HEADERS)
@@ -41,23 +42,29 @@ def run_digitSum():
             sPrize = dom.xpath('//td[@class="tdSecondPrize"]')[0].text
             tPrize = dom.xpath('//td[@class="tdThirdPrize"]')[0].text
 
-            topPrizesDF = topPrizesDF.append({'1st Prize': fPrize, '2nd Prize': sPrize, '3rd Prize': tPrize}, ignore_index=True)
+            digitSum["1st Prize"].insert(0, fPrize)
+            digitSum["2nd Prize"].insert(0, sPrize)
+            digitSum["3rd Prize"].insert(0, tPrize)
             
             current_percent = percentage(current_count, len(dates))
             my_bar.progress(int(current_percent))
 
         st.balloons()
+        topPrizesDF = pd.DataFrame(data=digitSum)
         topPrizesDF['1st Prize DS'] = topPrizesDF['1st Prize'].apply(sum_digits)
         topPrizesDF['2nd Prize DS'] = topPrizesDF['2nd Prize'].apply(sum_digits)
         topPrizesDF['3rd Prize DS'] = topPrizesDF['3rd Prize'].apply(sum_digits)
-        st.dataframe(topPrizesDF)
-        
+        reversed_df = topPrizesDF.iloc[::-1]
+        st.dataframe(reversed_df)
+
         st.info("__1st Prize Digit Sum__")
         st.line_chart(topPrizesDF['1st Prize DS'], use_container_width=True)
         st.info("__2nd Prize Digit Sum__")
         st.line_chart(topPrizesDF['2nd Prize DS'], use_container_width=True)
         st.info("__3rd Prize Digit Sum__")
         st.line_chart(topPrizesDF['3rd Prize DS'], use_container_width=True)
+
+
 
 def percentage(part, whole):
   return 100 * float(part)/float(whole)        
