@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import base64
 import itertools
@@ -37,7 +37,8 @@ def run_Scraping(numberList, showGraph, genPermutation):
         def getDateFromDrawDate(x):
             x = x.replace('/Date(', '')
             x = int(x.replace(')/', ''))
-            return datetime.fromtimestamp(x/1000).strftime('%Y-%m-%d')
+            currentDate = datetime.fromtimestamp(x/1000) + timedelta(1)
+            return currentDate.strftime('%Y-%m-%d')
 
         def GetResultsJson(num):
             data = json.dumps({"numbers": [str(num).zfill(4)], "checkCombinations": "true", "sortTypeInteger": "1"})  
