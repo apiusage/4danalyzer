@@ -1,4 +1,6 @@
 import streamlit as st
+from bs4 import BeautifulSoup
+from lxml import etree
 import requests
 import json
 from datetime import datetime, timedelta
@@ -12,9 +14,12 @@ def run_setHistory():
     numberList = st.text_area("Enter direct / set numbers: ", height=150)
     numberList = filterList(numberList)
 
-    col1, col2 = st.beta_columns(2)
+    col1, col2, col3 = st.beta_columns(3)
     showGraph = col1.checkbox('Show all graphs')
     genPermutation = col2.checkbox('Generate Permutations')
+
+    if st.button('Scrape Last Round'):
+        numberList = scrapeLastRound()
 
     run_Scraping(numberList, showGraph, genPermutation)
 
@@ -136,3 +141,36 @@ def download_link(object_to_download, download_filename, download_link_text):
 
 def remove_duplicates(l):
     return list(set(l))
+
+def scrapeLastRound():
+    allResult = []
+    start_url = ("http://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/fourd_result_draw_list_en.html")
+
+    HEADERS = ({'User-Agent':
+                    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
+                    (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36', \
+                'Accept-Language': 'en-US, en;q=0.5'})
+
+    webpage = requests.get(start_url, headers=HEADERS)
+    soup = BeautifulSoup(webpage.content, "html.parser")
+    dom = etree.HTML(str(soup))
+    dates = dom.xpath("//select/option")
+
+    for date in dates:
+        url = "http://www.singaporepools.com.sg/en/4d/Pages/Results.aspx?" + date.xpath("@querystring")[0]
+        drawPage = requests.get(url, headers=HEADERS)
+
+        if drawPage.ok:
+            soup = BeautifulSoup(drawPage.content, "html.parser")
+            dom = etree.HTML(str(soup))
+            fPrize = dom.xpath('//td[@class="tdFirstPrize"]')[0].text
+            sPrize = dom.xpath('//td[@class="tdSecondPrize"]')[0].text
+            tPrize = dom.xpath('//td[@class="tdThirdPrize"]')[0].text
+            allResult.extend([fPrize, sPrize, tPrize])
+            for number in dom.xpath("//tbody[@class='tbodyStarterPrizes']//td/text()"):
+                allResult.extend([number])
+            for number in dom.xpath("//tbody[@class='tbodyConsolationPrizes']//td/text()"):
+                allResult.extend([number])
+        break
+
+    return allResult

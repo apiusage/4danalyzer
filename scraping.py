@@ -43,7 +43,7 @@ def run_scraping():
             drawPage = requests.get(url, headers=HEADERS)
             if current_count == numOfRound and not scrapeAll:
                 break
-            if (drawPage.ok):
+            if drawPage.ok:
                 current_count += 1    
             soup = BeautifulSoup(drawPage.content, "html.parser")
             dom = etree.HTML(str(soup))
