@@ -2,11 +2,9 @@ import streamlit as st
 import streamlit.components.v1 as stc
 from PIL import Image
 from setAnalysis import run_setAnalysis
-from resultAnalysis import run_resultAnalysis
 from digitAnalysis import run_digitAnalysis
 from setHistory import run_setHistory
 from scraping import run_scraping
-from digitSum import run_digitSum
 import streamlit.components.v1 as stc 
  
 img = Image.open("logo.png")
@@ -22,7 +20,7 @@ LOGO_BANNER = """
 def main():
     stc.html(LOGO_BANNER)
 
-    menu = ["Home", "Set Analysis", "Pattern Analysis", "Digit Analysis", "Digit Sum", "Set History", "Run Scraping", "About"]
+    menu = ["Home", "Set Analysis", "Digit Analysis", "Set History", "Run Scraping", "About"]
     choice = st.sidebar.selectbox("Menu", menu)
 
     if choice == "Home":
@@ -33,12 +31,8 @@ def main():
 	    )
     elif choice == "Set Analysis":
         run_setAnalysis()
-    elif choice == "Pattern Analysis":
-        run_resultAnalysis()
     elif choice == "Digit Analysis":
         run_digitAnalysis()
-    elif choice == "Digit Sum":
-        run_digitSum()          
     elif choice == "Set History":
         run_setHistory()   
     elif choice == "Run Scraping":

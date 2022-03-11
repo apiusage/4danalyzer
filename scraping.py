@@ -8,11 +8,12 @@ from lxml import etree
 import base64
 import time
 from io import BytesIO
+from resultAnalysis import getNumPattern
 
 timestr = time.strftime("%m-%d-%Y")
 
 def run_scraping():
-    st.info("__Ultimate 4D Scraper__")
+    st.info("__Ultimate 4D Scraper (Digit Sum / Pattern Analysis)__")
     st.write("Scrape past 1st, 2nd, 3rd winning prize numbers including all winning numbers.")
 
     start_url = ("http://www.singaporepools.com.sg/DataFileArchive/Lottery/Output/fourd_result_draw_list_en.html")
@@ -36,6 +37,7 @@ def run_scraping():
         allResult = []
         my_bar = st.progress(0)
         current_count = 0
+        digitSum = {"1st Prize": [], "2nd Prize": [], "3rd Prize": []}
         for date in dates:
             url = "http://www.singaporepools.com.sg/en/4d/Pages/Results.aspx?" + date.xpath("@querystring")[0]
             drawPage = requests.get(url, headers=HEADERS)
@@ -63,17 +65,39 @@ def run_scraping():
             allResult.extend(starters)
             allResult.extend(consolations)
             
-            current_percent = percentage(current_count, len(dates))
+            current_percent = percentage(current_count, numOfRound)
             my_bar.progress(int(current_percent))
 
+            digitSum["1st Prize"].insert(0, fPrize)
+            digitSum["2nd Prize"].insert(0, sPrize)
+            digitSum["3rd Prize"].insert(0, tPrize)
+
         st.balloons()
-        allResultDF = pd.DataFrame (allResult, columns=['All Numbers'])
+        allResultDF = pd.DataFrame(allResult, columns=['All Numbers'])
         finalDF = pd.concat([topPrizesDF, allResultDF], axis=1)
         st.dataframe(finalDF)
         st.markdown("### ** 📩 ⬇️ Download 4D file **")
-        st.markdown(get_table_download_link(finalDF), unsafe_allow_html=True)    
+        st.markdown(get_table_download_link(finalDF), unsafe_allow_html=True)
 
-    
+        with st.beta_expander("Digit Sum"):
+            topPrizesDF = pd.DataFrame(data=digitSum)
+            topPrizesDF['1st Prize DS'] = topPrizesDF['1st Prize'].apply(sum_digits)
+            topPrizesDF['2nd Prize DS'] = topPrizesDF['2nd Prize'].apply(sum_digits)
+            topPrizesDF['3rd Prize DS'] = topPrizesDF['3rd Prize'].apply(sum_digits)
+            reversed_df = topPrizesDF.iloc[::-1]
+            st.dataframe(reversed_df)
+
+            st.info("__1st Prize Digit Sum__")
+            st.line_chart(topPrizesDF['1st Prize DS'], use_container_width=True)
+            st.info("__2nd Prize Digit Sum__")
+            st.line_chart(topPrizesDF['2nd Prize DS'], use_container_width=True)
+            st.info("__3rd Prize Digit Sum__")
+            st.line_chart(topPrizesDF['3rd Prize DS'], use_container_width=True)
+
+        with st.beta_expander("Pattern Analysis"):
+            getNumPattern(allResult)
+
+
 def to_excel(df):
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
@@ -90,3 +114,11 @@ def get_table_download_link(df):
 
 def percentage(part, whole):
   return 100 * float(part)/float(whole)
+
+def sum_digits(n):
+    n = int(n)
+    s = 0
+    while n:
+        s += n % 10
+        n //= 10
+    return s

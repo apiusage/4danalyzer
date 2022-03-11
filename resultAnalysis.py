@@ -3,14 +3,6 @@ import pandas as pd
 from collections import Counter
 import plotly.express as px
 
-def run_resultAnalysis():
-    st.info("__4D Pattern Analysis__")
-    st.write("__*For every 23 numbers in the list, it will treat it as 1 round.*__")
-
-    numberList = st.text_area("Enter winning numbers list", height=150)
-    numberList = filterList(numberList)
-    getNumPattern(numberList)
-
 def getNumPattern(numberList):
     patternDict = {"AAAA": [], "AAAB": [], "AABB": [], "AABC": [], "ABCD": []}
     if numberList is not None:
@@ -36,7 +28,7 @@ def getNumPattern(numberList):
             del numberList[:23]
 
     # Display Total Freq
-    st.success("__Total Pattern Freq__")
+    st.write("__*For every 23 numbers in the list, it will treat it as 1 round.*__")
     allPatternDF = pd.DataFrame(data=patternDict) 
     st.dataframe(allPatternDF)
 

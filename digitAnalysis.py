@@ -10,7 +10,6 @@ def run_digitAnalysis():
     numberList = filterList(numberList)
     digitAnalysis(numberList)
 
-
 def digitAnalysis(numberList):
     digit1Data, digit2Data, digit3Data, digit4Data, RoundNo = [], [], [], [], []
     i = 0
