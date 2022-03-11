@@ -8,10 +8,13 @@ pip install pipreqs
 pipreqs --encoding=utf8 C:\Users\bston\Desktop\4DApp --force
 
 2. Push to Github
+git init
 git add .
+git status
 git commit -m "Updates"
 git remote add origin https://github.com/apiusage/4danalysis.git
-git push origin master
+git remote set-url origin https://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@github.com/apiusage/4danalysis.git
+git push -u origin master
 
 No need to redeploy
 https://share.streamlit.io/
