@@ -8,3 +8,4 @@ streamlit==0.79.0
 matplotlib==3.3.4
 beautifulsoup4==4.10.0
 Pillow==9.1.0
+click==8.0
