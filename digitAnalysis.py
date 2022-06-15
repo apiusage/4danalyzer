@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def run_digitAnalysis():
-    st.info("__4D Digit Analysis__")
-
     numberList = st.text_area("Enter winning numbers list: ", height=150)
     numberList = filterList(numberList)
     digitAnalysis(numberList)

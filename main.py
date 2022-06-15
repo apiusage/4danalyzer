@@ -5,7 +5,8 @@ from setAnalysis import run_setAnalysis
 from digitAnalysis import run_digitAnalysis
 from setHistory import run_setHistory
 from scraping import run_scraping
-import streamlit.components.v1 as stc 
+import streamlit.components.v1 as stc
+from streamlit_option_menu import option_menu
  
 img = Image.open("logo.png")
 PAGE_CONFIG = {"page_title": "4D Analyzer", "page_icon":img, "layout":"centered", "initial_sidebar_state": "expanded" }
@@ -18,13 +19,9 @@ LOGO_BANNER = """
     """
 
 def main():
-    stc.html(LOGO_BANNER)
-
-    menu = ["Home", "Set Analysis", "Digit Analysis", "Set History", "Run Scraping", "About"]
-    choice = st.sidebar.selectbox("Menu", menu)
+    choice = optionMenu()
 
     if choice == "Home":
-        st.subheader("Home")
         stc.iframe("https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx",
 	    height=700,width=300,
 	    scrolling=True
@@ -40,7 +37,7 @@ def main():
     else:
         st.info("__About__")
         st.write("A web application to analyze past 4D winning numbers.")
-        st.info("__Techology Utilized__")
+        st.info("__Technologies Utilized__")
         st.write("Python, Streamlit, BeautifulSoup, Pandas, Requests")
         st.info("__Responsible Gambling__")
         st.write("__We are not responsible for any of your losses.__")
@@ -55,5 +52,22 @@ def main():
                  the agreement with any applicable local laws.")
         st.balloons()
 
+def optionMenu():
+    option = option_menu("4D Analyzer",
+                         ["Home", "Set Analysis", "Digit Analysis", "Set History", "Run Scraping", "About"],
+                         icons=['house-heart-fill', 'graph-up', 'graph-up-arrow', 'wallet', 'card-checklist',
+                                'question-circle'],
+                         orientation="horizontal", menu_icon="dice-4-fill", default_index=0,
+                         styles={
+                             "container": {"padding": "5!important", "background-color": "#fafafa"},
+                             "icon": {"color": "orange", "font-size": "16px"},
+                             "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px",
+                                          "--hover-color": "#eee"},
+                             "nav-link-selected": {"background-color": "#02ab21"},
+                         }
+                         )
+    return option
+
 if __name__ == '__main__':
     main()
+

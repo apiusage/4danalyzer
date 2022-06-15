@@ -79,7 +79,7 @@ def run_scraping():
         st.markdown("### ** 📩 ⬇️ Download 4D file **")
         st.markdown(get_table_download_link(finalDF), unsafe_allow_html=True)
 
-        with st.beta_expander("Digit Sum"):
+        with st.expander("Digit Sum"):
             topPrizesDF = pd.DataFrame(data=digitSum)
             topPrizesDF['1st Prize DS'] = topPrizesDF['1st Prize'].apply(sum_digits)
             topPrizesDF['2nd Prize DS'] = topPrizesDF['2nd Prize'].apply(sum_digits)
@@ -94,7 +94,7 @@ def run_scraping():
             st.info("__3rd Prize Digit Sum__")
             st.line_chart(topPrizesDF['3rd Prize DS'], use_container_width=True)
 
-        with st.beta_expander("Pattern Analysis"):
+        with st.expander("Pattern Analysis"):
             getNumPattern(allResult)
 
 

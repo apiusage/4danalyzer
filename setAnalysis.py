@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd 
 
 def run_setAnalysis():
-    st.info("__4D Sets Freq Analysis__")
-
     df = pd.read_csv("data/4D Sets.csv")
     # add zero leadings to 4D numbers
     df['Number'] = df['Number'].apply(lambda num: '{0:0>4}'.format(num))

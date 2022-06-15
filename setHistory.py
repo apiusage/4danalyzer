@@ -10,11 +10,10 @@ import itertools
 import xlsxwriter
 
 def run_setHistory():
-    st.info("__4D Set Analysis__")
     numberList = st.text_area("Enter direct / set numbers: ", height=150)
     numberList = filterList(numberList)
 
-    col1, col2, col3 = st.beta_columns(3)
+    col1, col2, col3 = st.columns(3)
     showGraph = col1.checkbox('Show all graphs')
     genPermutation = col2.checkbox('Generate Permutations')
 
@@ -99,7 +98,7 @@ def run_Scraping(numberList, showGraph, genPermutation):
             except:
                 pass
             
-            with st.beta_expander(label = "Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0])): # rows
+            with st.expander(label = "Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0])): # rows
                 dateList = ResultsAll['DrawDate'].values.tolist()
                 prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
                 lineChartDF = pd.DataFrame({
