@@ -13,10 +13,10 @@ def digitAnalysis(numberList):
     i = 0
     if numberList is not None:
         for num in numberList:
-            digit1Data.insert(0, num[0:1])
-            digit2Data.insert(0, num[1:2])
-            digit3Data.insert(0, num[2:3])
-            digit4Data.insert(0, num[3:4])
+            digit1Data.insert(0, int(num[0:1]))
+            digit2Data.insert(0, int(num[1:2]))
+            digit3Data.insert(0, int(num[2:3]))
+            digit4Data.insert(0, int(num[3:4]))
 
             RoundNo.append(i)
             i += 1
