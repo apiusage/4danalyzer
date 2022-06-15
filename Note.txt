@@ -13,8 +13,9 @@ git add .
 git status
 git commit -m "Updates"
 git remote add origin https://github.com/apiusage/4danalysis.git
-git remote set-url origin https://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@github.com/apiusage/4danalysis.git
-git push -u origin master
+git remote set-url origin https://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@github.com/apiusage/4danalysis.git
+git push -u origin main
+git push
 
 No need to redeploy
 https://share.streamlit.io/
