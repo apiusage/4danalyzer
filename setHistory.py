@@ -45,7 +45,7 @@ def run_Scraping(numberList, genPermutation):
              # Convert milliseconds to local time
              local_time = datetime.fromtimestamp(x / 1000)
              # Add one day to the local time
-             local_time += timedelta(days=1)
+             local_time += timedelta(days=2)
              return local_time.strftime('%Y-%m-%d')
 
         def GetResultsJson(num):
