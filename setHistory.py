@@ -40,9 +40,13 @@ def run_Scraping(numberList, genPermutation):
 
         # Convert milliseconds to local time
         def getDateFromDrawDate(x):
-            x = x.replace('/Date(', '')
-            x = int(x.replace(')/', ''))
-            return datetime.fromtimestamp(x / 1000).strftime('%Y-%m-%d')
+             x = x.replace('/Date(', '')
+             x = int(x.replace(')/', ''))
+             # Convert milliseconds to local time
+             local_time = datetime.fromtimestamp(x / 1000)
+             # Add one day to the local time
+             local_time += timedelta(days=1)
+             return local_time.strftime('%Y-%m-%d')
 
         def GetResultsJson(num):
             data = json.dumps({"numbers": [str(num).zfill(4)], "checkCombinations": "true", "sortTypeInteger": "1"})
