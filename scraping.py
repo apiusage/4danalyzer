@@ -60,7 +60,7 @@ def run_scraping():
             for number in dom.xpath("//tbody[@class='tbodyConsolationPrizes']//td/text()") :
                 consolations.append(number)  
 
-            topPrizesDF = topPrizesDF.append({'1st Prize': fPrize, '2nd Prize': sPrize, '3rd Prize': tPrize}, ignore_index=True)
+            topPrizesDF = pd.concat([topPrizesDF, pd.DataFrame({'1st Prize': [fPrize], '2nd Prize': [sPrize], '3rd Prize': [tPrize]})], ignore_index=True)
             allResult.extend([fPrize, sPrize, tPrize])
             allResult.extend(starters)
             allResult.extend(consolations)
@@ -102,7 +102,7 @@ def to_excel(df):
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
     df.to_excel(writer, sheet_name=timestr, index=False)
-    writer.save()
+    writer.close()
     processed_data = output.getvalue()
     return processed_data    
 
