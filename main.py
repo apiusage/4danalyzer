@@ -3,7 +3,7 @@ import streamlit.components.v1 as stc
 from PIL import Image
 from setAnalysis import run_setAnalysis
 from digitAnalysis import run_digitAnalysis
-from setHistory import run_setHistory
+from setHistory import run_setHistory 
 from scraping import run_scraping
 import streamlit.components.v1 as stc
 from streamlit_option_menu import option_menu
