@@ -9,20 +9,21 @@ import base64
 import itertools
 import xlsxwriter
 
+
 def run_setHistory():
     numberList = st.text_area("Enter direct / set numbers: ", height=150)
     numberList = filterList(numberList)
 
     col1, col2, col3 = st.columns(3)
-    showGraph = col1.checkbox('Show all graphs')
-    genPermutation = col2.checkbox('Generate Permutations')
+    genPermutation = col1.checkbox('Generate Permutations')
 
     if st.button('Scrape Last Round'):
         numberList = scrapeLastRound()
 
-    run_Scraping(numberList, showGraph, genPermutation)
+    run_Scraping(numberList, genPermutation)
 
-def run_Scraping(numberList, showGraph, genPermutation):
+
+def run_Scraping(numberList, genPermutation):
     try:
         url = 'https://www.singaporepools.com.sg/_layouts/15/FourD/FourDCommon.aspx/Get4DNumberCheckResultsJSON'
         headers = {
@@ -41,29 +42,36 @@ def run_Scraping(numberList, showGraph, genPermutation):
         def getDateFromDrawDate(x):
             x = x.replace('/Date(', '')
             x = int(x.replace(')/', ''))
-            currentDate = datetime.fromtimestamp(x/1000) + timedelta(1)
-            return currentDate.strftime('%Y-%m-%d')
+            return datetime.fromtimestamp(x / 1000).strftime('%Y-%m-%d')
 
         def GetResultsJson(num):
-            data = json.dumps({"numbers": [str(num).zfill(4)], "checkCombinations": "true", "sortTypeInteger": "1"})  
+            data = json.dumps({"numbers": [str(num).zfill(4)], "checkCombinations": "true", "sortTypeInteger": "1"})
             r = requests.post(url=url, data=data, headers=headers)
-            if r.ok:
-                ResultsData = json.loads(r.json().get('d'))[0].get('Prizes')
-            
-                Results_df = pd.DataFrame.from_dict(ResultsData)  # dict to DF
-                Results_df["DrawDate"] = Results_df["DrawDate"].apply(getDateFromDrawDate, 1)
-                Results_df["Digit"] = str(num).zfill(4)
-
-                return Results_df 
-            else:
-                GetResultsJson(num)   
+            ResultsData = json.loads(r.json().get('d'))[0].get('Prizes')
+            Results_df = pd.DataFrame.from_dict(ResultsData)  # dict to DF
+            Results_df["DrawDate"] = Results_df["DrawDate"].apply(lambda x: pd.Series(getDateFromDrawDate(x), dtype="object"))
+            Results_df["Digit"] = str(num).zfill(4)
+            return Results_df
 
         def getPermutation(n):
             array = [''.join(i) for i in itertools.permutations(n, 4)]
             array = remove_duplicates(array)
             array = sorted(array)
 
-            return array        
+            return array
+
+        def showGraph(SetResultData):
+            st.success(num)
+            # Line chart
+            dateList = SetResultData['DrawDate'].values.tolist()
+            prizeCodeList = SetResultData['PrizeCode'].values.tolist()
+            lineChartDF = pd.DataFrame({
+                'date': dateList,
+                'prizeCode': prizeCodeList
+            })
+            lineChartDF = lineChartDF.set_index('date')
+            st.line_chart(lineChartDF, use_container_width=True)
+            st.dataframe(SetResultData['PrizeCode'].value_counts().sort_index(ascending=True))
 
         for n in numberList:
             ResultsAll = pd.DataFrame()
@@ -73,32 +81,21 @@ def run_Scraping(numberList, showGraph, genPermutation):
                     for num in array:
                         SetResultData = None
                         while SetResultData is None:
-                            SetResultData = GetResultsJson(num) 
-                        
-                        if showGraph: 
-                            st.success(num)
-                            # Line chart
-                            dateList = SetResultData['DrawDate'].values.tolist()
-                            prizeCodeList = SetResultData['PrizeCode'].values.tolist()
-                            lineChartDF = pd.DataFrame({
-                                'date': dateList,
-                                'prizeCode': prizeCodeList
-                            })
-                            lineChartDF = lineChartDF.set_index('date')
-                            st.line_chart(lineChartDF, use_container_width=True)
+                            SetResultData = GetResultsJson(num)
 
-                            st.dataframe(SetResultData['PrizeCode'].value_counts().sort_index(ascending=True))
+                        showGraph(SetResultData)
+                        ResultsAll = pd.concat([ResultsAll, SetResultData], ignore_index=True, axis=0)
+                        st.dataframe(ResultsAll)
+                else:
+                    SetResultData = None
+                    while SetResultData is None:
+                        SetResultData = GetResultsJson(n)
 
-                        ResultsAll = ResultsAll.append(SetResultData, ignore_index=True)
-                else: 
-                    ResultsData = None
-                    while ResultsData is None:
-                        ResultsData = GetResultsJson(n)
-                    ResultsAll = ResultsAll.append(ResultsData)
+                    st.dataframe(SetResultData)
             except:
                 pass
-            
-            with st.expander(label = "Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0])): # rows
+
+            with st.expander(label="Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0])):  # rows
                 dateList = ResultsAll['DrawDate'].values.tolist()
                 prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
                 lineChartDF = pd.DataFrame({
@@ -111,11 +108,12 @@ def run_Scraping(numberList, showGraph, genPermutation):
                 st.dataframe(ResultsAll.sort_values(by=['DrawDate'], ascending=False), width=400)
                 st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
                 st.dataframe(ResultsAll['Digit'].value_counts())
- 
+
                 tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
                 st.markdown(tmp_download_link, unsafe_allow_html=True)
     except:
         pass
+
 
 # Filter 4 digits
 def filterList(numberList):
@@ -129,6 +127,7 @@ def filterList(numberList):
 
     return numberClean
 
+
 def download_link(object_to_download, download_filename, download_link_text):
     if isinstance(object_to_download, pd.DataFrame):
         object_to_download = object_to_download.to_csv(index=False)
@@ -138,8 +137,10 @@ def download_link(object_to_download, download_filename, download_link_text):
 
     return f'<a href="data:file/txt;base64,{b64}" download="{download_filename}">{download_link_text}</a>'
 
+
 def remove_duplicates(l):
     return list(set(l))
+
 
 def scrapeLastRound():
     allResult = []
