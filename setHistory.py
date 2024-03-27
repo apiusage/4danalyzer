@@ -85,7 +85,8 @@ def run_Scraping(numberList, genPermutation):
 
                         showGraph(SetResultData)
                         ResultsAll = pd.concat([ResultsAll, SetResultData], ignore_index=True, axis=0)
-                        st.dataframe(ResultsAll)
+                    
+                    st.dataframe(ResultsAll)
                 else:
                     SetResultData = None
                     while SetResultData is None:
