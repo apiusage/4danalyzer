@@ -65,17 +65,17 @@ def run_Scraping(numberList, genPermutation):
             return array
 
         def showGraph(SetResultData):
-            st.success(num)
-            # Line chart
-            dateList = SetResultData['DrawDate'].values.tolist()
-            prizeCodeList = SetResultData['PrizeCode'].values.tolist()
-            lineChartDF = pd.DataFrame({
-                'date': dateList,
-                'prizeCode': prizeCodeList
-            })
-            lineChartDF = lineChartDF.set_index('date')
-            st.line_chart(lineChartDF, use_container_width=True)
-            st.dataframe(SetResultData['PrizeCode'].value_counts().sort_index(ascending=True))
+            with st.expander(label=str(num)):
+                # Line chart
+                dateList = SetResultData['DrawDate'].values.tolist()
+                prizeCodeList = SetResultData['PrizeCode'].values.tolist()
+                lineChartDF = pd.DataFrame({
+                    'date': dateList,
+                    'prizeCode': prizeCodeList
+                })
+                lineChartDF = lineChartDF.set_index('date')
+                st.line_chart(lineChartDF, use_container_width=True)
+                st.dataframe(SetResultData['PrizeCode'].value_counts().sort_index(ascending=True))
 
         for n in numberList:
             ResultsAll = pd.DataFrame()
@@ -89,33 +89,35 @@ def run_Scraping(numberList, genPermutation):
 
                         showGraph(SetResultData)
                         ResultsAll = pd.concat([ResultsAll, SetResultData], ignore_index=True, axis=0)
-                    
-                    st.dataframe(ResultsAll)
                 else:
                     SetResultData = None
                     while SetResultData is None:
                         SetResultData = GetResultsJson(n)
 
-                    st.dataframe(SetResultData)
+                    st.dataframe(SetResultData.sort_values(by=['DrawDate'], ascending=False), width=400)
             except:
                 pass
 
-            with st.expander(label="Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0])):  # rows
-                dateList = ResultsAll['DrawDate'].values.tolist()
-                prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
-                lineChartDF = pd.DataFrame({
-                    'date': dateList,
-                    'prizeCode': prizeCodeList
-                })
-                lineChartDF = lineChartDF.set_index('date')
-                lineChartDF.sort_values(by=['date'], inplace=True, ascending=False)
-                st.line_chart(lineChartDF.head(15), use_container_width=True)
-                st.dataframe(ResultsAll.sort_values(by=['DrawDate'], ascending=False), width=400)
-                st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
-                st.dataframe(ResultsAll['Digit'].value_counts())
+        # Expander should be outside the loop
+        with st.expander(label="Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0]), expanded=True):  # rows
+            dateList = ResultsAll['DrawDate'].values.tolist()
+            prizeCodeList = ResultsAll['PrizeCode'].values.tolist()
+            lineChartDF = pd.DataFrame({
+                'date': dateList,
+                'prizeCode': prizeCodeList
+            })
+            lineChartDF = lineChartDF.set_index('date')
+            lineChartDF.sort_values(by=['date'], inplace=True, ascending=False)
+            st.line_chart(lineChartDF.head(15), use_container_width=True)
+            st.dataframe(ResultsAll.sort_values(by=['DrawDate'], ascending=False), width=400)
+            st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
+            st.dataframe(ResultsAll['Digit'].value_counts())
 
-                tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
-                st.markdown(tmp_download_link, unsafe_allow_html=True)
+            tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
+            st.markdown(tmp_download_link, unsafe_allow_html=True)
+
+        st.markdown("<div style='text-align:right'><a href='#top'>------- ↟ Go to top ↟ -------</a></div>", unsafe_allow_html=True)
+
     except:
         pass
 
