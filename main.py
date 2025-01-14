@@ -1,12 +1,12 @@
-import streamlit as st 
-import streamlit.components.v1 as stc
+import streamlit as st
 from PIL import Image
 from setAnalysis import run_setAnalysis
 from digitAnalysis import run_digitAnalysis
-from setHistory import run_setHistory 
+from setHistory import *
 from scraping import run_scraping
 import streamlit.components.v1 as stc
 from streamlit_option_menu import option_menu
+from st_copy_to_clipboard import st_copy_to_clipboard
  
 img = Image.open("logo.png")
 PAGE_CONFIG = {"page_title": "4D Analyzer", "page_icon":img, "layout":"centered", "initial_sidebar_state": "expanded" }
@@ -20,6 +20,9 @@ LOGO_BANNER = """
 
 def main():
     choice = optionMenu()
+    latestResult = scrapeLastRound()
+    result = " ".join(item.replace(",", "\n") for item in latestResult)
+    st_copy_to_clipboard(result)
 
     if choice == "Home":
         stc.iframe("https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx",
