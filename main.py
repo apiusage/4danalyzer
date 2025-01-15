@@ -7,9 +7,14 @@ from scraping import run_scraping
 import streamlit.components.v1 as stc
 from streamlit_option_menu import option_menu
 from st_copy_to_clipboard import st_copy_to_clipboard
- 
+
 img = Image.open("logo.png")
-PAGE_CONFIG = {"page_title": "4D Analyzer", "page_icon":img, "layout":"centered", "initial_sidebar_state": "expanded" }
+PAGE_CONFIG = {
+    "page_title": "4D Analyzer",
+    "page_icon": img,
+    "layout": "centered",
+    "initial_sidebar_state": "expanded"
+}
 st.set_page_config(**PAGE_CONFIG)
 
 LOGO_BANNER = """
@@ -18,25 +23,25 @@ LOGO_BANNER = """
     </div>
     """
 
+
 def main():
     choice = optionMenu()
 
     if choice == "Home":
-    	latestResult = scrapeLastRound()
-    	result = " ".join(item.replace(",", "\n") for item in latestResult)
-    	st_copy_to_clipboard(result)
+        latestResult = scrapeLastRound()
+        result = " ".join(item.replace(",", "\n") for item in latestResult)
+        st_copy_to_clipboard(result)
         stc.iframe("https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx",
-	    height=700,width=300,
-	    scrolling=True
-	    )
+                   height=700, width=300,
+                   scrolling=True)
     elif choice == "Set Analysis":
         run_setAnalysis()
     elif choice == "Digit Analysis":
         run_digitAnalysis()
     elif choice == "Set History":
-        run_setHistory()   
+        run_setHistory()
     elif choice == "Run Scraping":
-        run_scraping()     
+        run_scraping()
     else:
         st.info("__About__")
         st.write("A web application to analyze past 4D winning numbers.")
@@ -48,12 +53,13 @@ def main():
         st.info("__Legal__")
         st.write("You are responsible for any abuse or misuse of this tool.")
         st.info("__Limitations__")
-        st.write("We will not be hold accountable for any damages that will\
+        st.write("We will not be held accountable for any damages that will \
                  arise with the use of this 4D analysis tool.")
         st.info("__Terms__")
         st.write("By accessing this website, you are responsible for \
                  the agreement with any applicable local laws.")
         st.balloons()
+
 
 def optionMenu():
     option = option_menu("4D Analyzer",
@@ -71,6 +77,6 @@ def optionMenu():
                          )
     return option
 
+
 if __name__ == '__main__':
     main()
-
