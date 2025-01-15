@@ -20,11 +20,11 @@ LOGO_BANNER = """
 
 def main():
     choice = optionMenu()
-    latestResult = scrapeLastRound()
-    result = " ".join(item.replace(",", "\n") for item in latestResult)
-    st_copy_to_clipboard(result)
 
     if choice == "Home":
+    	latestResult = scrapeLastRound()
+    	result = " ".join(item.replace(",", "\n") for item in latestResult)
+    	st_copy_to_clipboard(result)
         stc.iframe("https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx",
 	    height=700,width=300,
 	    scrolling=True
