@@ -32,7 +32,7 @@ def main():
         result = " ".join(item.replace(",", "\n") for item in latestResult)
         st_copy_to_clipboard(result)
         stc.iframe("https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx",
-                   height=1000, width=500,
+                   height=1300, width=500,
                    scrolling=True)
     elif choice == "Set Analysis":
         run_setAnalysis()
