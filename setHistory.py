@@ -8,7 +8,7 @@ import pandas as pd
 import base64
 import itertools
 import xlsxwriter
-
+from st_copy_to_clipboard import st_copy_to_clipboard
 
 def run_setHistory():
     numberList = st.text_area("Enter direct / set numbers: ", height=150)
@@ -109,7 +109,14 @@ def run_Scraping(numberList, genPermutation):
             lineChartDF = lineChartDF.set_index('date')
             lineChartDF.sort_values(by=['date'], inplace=True, ascending=False)
             st.line_chart(lineChartDF.head(15), use_container_width=True)
-            st.dataframe(ResultsAll.sort_values(by=['DrawDate'], ascending=False), width=400)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.dataframe(ResultsAll.sort_values(by=['DrawDate'], ascending=False))
+            with col2:
+                column_to_copy = ResultsAll.sort_values(by="DrawDate")['Digit'].to_string(index=False, header=False)
+                st_copy_to_clipboard(column_to_copy)
+
             st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
             st.dataframe(ResultsAll['Digit'].value_counts())
 
