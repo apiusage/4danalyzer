@@ -10,4 +10,4 @@ streamlit~=1.45.1
 streamlit_option_menu
 XlsxWriter~=3.2.3
 st-copy-to-clipboard
-scikit-learn~=1.6.1
+scikit-learn
