@@ -6,7 +6,6 @@ from setHistory import *
 from scraping import run_scraping
 import streamlit.components.v1 as stc
 from streamlit_option_menu import option_menu
-from st_copy_to_clipboard import st_copy_to_clipboard
 
 img = Image.open("logo.png")
 PAGE_CONFIG = {
@@ -27,19 +26,12 @@ LOGO_BANNER = """
 def main():
     choice = optionMenu()
 
-    if choice == "Home":
-        latestResult = scrapeLastRound()
-        result = " ".join(item.replace(",", "\n") for item in latestResult)
-        st_copy_to_clipboard(result)
-        stc.iframe("https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx",
-                   height=900, width=280,
-                   scrolling=True)
+    if choice == "Set History":
+         run_setHistory()
     elif choice == "Set Analysis":
         run_setAnalysis()
     elif choice == "Digit Analysis":
         run_digitAnalysis()
-    elif choice == "Set History":
-        run_setHistory()
     elif choice == "Run Scraping":
         run_scraping()
     else:
@@ -63,7 +55,7 @@ def main():
 
 def optionMenu():
     option = option_menu("4D Analyzer",
-                         ["Home", "Set Analysis", "Digit Analysis", "Set History", "Run Scraping", "About"],
+                         ["Set History", "Set Analysis", "Digit Analysis", "Run Scraping", "About"],
                          icons=['house-heart-fill', 'graph-up', 'graph-up-arrow', 'wallet', 'card-checklist',
                                 'question-circle'],
                          orientation="horizontal", menu_icon="dice-4-fill", default_index=0,
