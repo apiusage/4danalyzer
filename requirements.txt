@@ -1,7 +1,7 @@
 beautifulsoup4
 lxml
 matplotlib
-numpy>=1.22.4,<2.0.0
+numpy
 pandas
 Pillow
 plotly
@@ -11,3 +11,5 @@ streamlit_option_menu
 XlsxWriter
 st-copy-to-clipboard
 scikit-learn
+selenium
+undetected-chromedriver
