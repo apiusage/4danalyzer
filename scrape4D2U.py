@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+import traceback
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -8,9 +9,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from webdriver_manager.chrome import ChromeDriverManager
-import traceback
 
-# Set up Chrome for Streamlit Cloud
+# Configure Chrome options
 chrome_options = Options()
 chrome_options.binary_location = "/usr/bin/chromium"
 chrome_options.add_argument("--headless")
@@ -22,11 +22,12 @@ def get_from_latest_drawno(number_to_search: str) -> str:
     """Scrape 'From Latest DrawNo' value from 4d2u.com for the given number."""
     url = "https://www.4d2u.com/search.php"
     try:
-        service = Service(ChromeDriverManager().install())
+        # MATCHING ChromeDriver version for Chromium 120 on Streamlit Cloud
+        service = Service(ChromeDriverManager(version="120.0.6099.71").install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
-        driver.get(url)
-
         wait = WebDriverWait(driver, 10)
+
+        driver.get(url)
 
         # Fill in number
         search_input = wait.until(EC.presence_of_element_located((By.NAME, "search")))
@@ -72,3 +73,14 @@ def get_from_latest_drawno(number_to_search: str) -> str:
             driver.quit()
         except:
             pass
+
+# Streamlit UI
+st.title("🔎 4D2U Number Checker")
+number_input = st.text_input("Enter 4D Number:", max_chars=4)
+
+if st.button("Check"):
+    if not number_input or not number_input.isdigit() or len(number_input) != 4:
+        st.warning("Please enter a valid 4-digit number.")
+    else:
+        result = get_from_latest_drawno(number_input)
+        st.success(f"Result: {result}")
