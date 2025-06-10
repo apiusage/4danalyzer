@@ -13,3 +13,4 @@ st-copy-to-clipboard
 scikit-learn
 urllib3
 selenium
+undetected-chromedriver
