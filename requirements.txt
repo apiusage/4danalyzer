@@ -12,4 +12,4 @@ XlsxWriter
 st-copy-to-clipboard
 scikit-learn
 selenium
-undetected-chromedriver
+webdriver-manager
