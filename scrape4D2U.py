@@ -8,22 +8,22 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-from webdriver_manager.chrome import ChromeDriverManager
 
-# Configure Chrome options
+# Configure paths and options for Streamlit Cloud
 chrome_options = Options()
 chrome_options.binary_location = "/usr/bin/chromium"
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
-os.environ["PATH"] += os.pathsep + "/usr/lib/chromium"
+
+# Use system ChromeDriver instead of webdriver-manager
+CHROMEDRIVER_PATH = "/usr/lib/chromium/chromedriver"
 
 def get_from_latest_drawno(number_to_search: str) -> str:
     """Scrape 'From Latest DrawNo' value from 4d2u.com for the given number."""
     url = "https://www.4d2u.com/search.php"
     try:
-        # MATCHING ChromeDriver version for Chromium 120 on Streamlit Cloud
-        service = Service(ChromeDriverManager(version="120.0.6099.71").install())
+        service = Service(CHROMEDRIVER_PATH)
         driver = webdriver.Chrome(service=service, options=chrome_options)
         wait = WebDriverWait(driver, 10)
 
