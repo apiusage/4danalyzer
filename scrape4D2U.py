@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import random
+import time
 
 def get_from_latest_drawno(number: str) -> str:
     url = "https://www.4d2u.com/search.php"
@@ -24,11 +26,27 @@ def get_from_latest_drawno(number: str) -> str:
         "SearchAction": "Search"
     }
 
+    headers = {
+        "User-Agent": random.choice([
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+            "(KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"
+        ]),
+        "Referer": "https://www.4d2u.com/",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Connection": "keep-alive"
+    }
+
     # Setup retry logic
     session = requests.Session()
     retry = Retry(
-        total=5,                # Retry up to 5 times
-        backoff_factor=2,       # Wait 2, 4, 8, 16... seconds
+        total=5,
+        backoff_factor=1,
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"]
     )
@@ -37,8 +55,12 @@ def get_from_latest_drawno(number: str) -> str:
     session.mount("https://", adapter)
 
     try:
-        response = session.get(url, params=params, timeout=30)
+        # Optional: wait a random short time to mimic human behavior
+        time.sleep(random.uniform(1.0, 2.5))
+
+        response = session.get(url, params=params, headers=headers, timeout=20)
         response.raise_for_status()
+
         soup = BeautifulSoup(response.text, "html.parser")
 
         # Extract the exact value
