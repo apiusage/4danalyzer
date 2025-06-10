@@ -9,7 +9,7 @@ import time
 def get_from_latest_drawno(number: str) -> str:
     url = f"https://www.4d2u.com/search.php?s=&lang=E&search={number}&from_day=01&from_month=01&from_year=1985&to_day=11&to_month=06&to_year=2025&sin=Y&mode=exa&pri_top=Y&pri_sta=Y&pri_con=Y&graph=N&SearchAction=Search"
 
-    # Set Chrome options
+    # Setup Chrome options
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
@@ -18,17 +18,21 @@ def get_from_latest_drawno(number: str) -> str:
     options.add_argument("--window-size=1920x1080")
     options.add_argument("--user-agent=Mozilla/5.0")
 
-    # Initialize the browser
+    # Start browser
     driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-
-    # Go to the page
     driver.get(url)
-    time.sleep(3)  # Wait for JS to load
+    time.sleep(3)
 
+    # Extract page source
     html = driver.page_source
+    status_code = driver.execute_script("return document.readyState")  # This will show 'complete'
     driver.quit()
 
-    # Parse the HTML with BeautifulSoup
+    # Show simulated response info
+    st.write("Simulated Page Load Status:", status_code)
+    st.code(html[:1000], language="html")  # First 1000 chars of the HTML page
+
+    # Parse with BeautifulSoup
     soup = BeautifulSoup(html, "html.parser")
     for row in soup.select("table tr"):
         cells = row.find_all("td")
