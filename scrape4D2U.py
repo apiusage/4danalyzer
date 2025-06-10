@@ -1,3 +1,4 @@
+import os
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,6 +12,9 @@ def get_from_latest_drawno(number_to_search: str) -> str:
 
     # Configure Chrome options
     chrome_options = uc.ChromeOptions()
+    chrome_options.binary_location = "/usr/bin/chromium"
+    os.environ["PATH"] += os.pathsep + "/usr/lib/chromium"
+
     chrome_options.add_argument("--headless=new")  # use --headless=new for Chrome 109+
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
