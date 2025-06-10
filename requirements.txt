@@ -11,6 +11,4 @@ streamlit_option_menu
 XlsxWriter
 st-copy-to-clipboard
 scikit-learn
-selenium
-webdriver-manager
-undetected-chromedriver
+urllib3

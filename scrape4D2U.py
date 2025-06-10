@@ -1,72 +1,56 @@
-import os
-import streamlit as st
-import time
-import traceback
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException
-import undetected_chromedriver as uc
+import requests
+from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-# Function to initialize undetected Chrome driver
-def get_driver():
-    options = uc.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    return uc.Chrome(options=options)
-
-# Function to fetch "From Latest DrawNo" result
-def get_from_latest_drawno(number_to_search: str) -> str:
+def get_from_latest_drawno(number: str) -> str:
     url = "https://www.4d2u.com/search.php"
+    params = {
+        "s": "",
+        "lang": "E",
+        "search": number,
+        "from_day": "01",
+        "from_month": "01",
+        "from_year": "1985",
+        "to_day": "11",
+        "to_month": "06",
+        "to_year": "2025",
+        "sin": "Y",
+        "mode": "exa",
+        "pri_top": "Y",
+        "pri_sta": "Y",
+        "pri_con": "Y",
+        "graph": "N",
+        "SearchAction": "Search"
+    }
+
+    # Setup retry logic
+    session = requests.Session()
+    retry = Retry(
+        total=5,                # Retry up to 5 times
+        backoff_factor=2,       # Wait 2, 4, 8, 16... seconds
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+
     try:
-        driver = get_driver()
-        driver.get(url)
-        wait = WebDriverWait(driver, 10)
+        response = session.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
 
-        # Input number
-        search_input = wait.until(EC.presence_of_element_located((By.NAME, "search")))
-        search_input.clear()
-        search_input.send_keys(number_to_search)
+        # Extract the exact value
+        rows = soup.select("table tr")
+        for row in rows:
+            cells = row.find_all("td")
+            if len(cells) == 2:
+                label = cells[0].get_text(strip=True)
+                value = cells[1].get_text(strip=True)
+                if label == "From Latest DrawNo":
+                    return value
+        return "Not found"
 
-        # Uncheck MAG
-        mag_checkbox = driver.find_element(By.NAME, "mag")
-        if mag_checkbox.is_selected():
-            mag_checkbox.click()
-
-        # Check SIN
-        sin_checkbox = driver.find_element(By.NAME, "sin")
-        if not sin_checkbox.is_selected():
-            sin_checkbox.click()
-
-        # Select permutation mode "No"
-        no_permutation = driver.find_element(By.XPATH, '//input[@name="mode" and @value="exa"]')
-        no_permutation.click()
-
-        # Submit form
-        search_button = driver.find_element(By.NAME, "SearchAction")
-        search_button.click()
-
-        # Wait and extract "From Latest DrawNo"
-        from_latest_label = wait.until(
-            EC.presence_of_element_located((By.XPATH, "//td[normalize-space()='From Latest DrawNo']"))
-        )
-        from_latest_value_td = from_latest_label.find_element(By.XPATH, "./following-sibling::td")
-        result = from_latest_value_td.text.strip()
-
-        driver.quit()
-        return result
-
-    except TimeoutException:
-        return "❌ Timeout waiting for page elements."
-    except WebDriverException as e:
-        return f"❌ WebDriver error: {e}\n\nTraceback:\n{traceback.format_exc()}"
-    except Exception as e:
-        return f"❌ Unexpected error: {e}\n\nTraceback:\n{traceback.format_exc()}"
-    finally:
-        try:
-            driver.quit()
-        except:
-            pass
+    except requests.exceptions.RequestException as e:
+        return f"Request failed: {e}"
