@@ -73,14 +73,3 @@ def get_from_latest_drawno(number_to_search: str) -> str:
             driver.quit()
         except:
             pass
-
-# Streamlit UI
-st.title("🔎 4D2U Number Checker")
-number_input = st.text_input("Enter 4D Number:", max_chars=4)
-
-if st.button("Check"):
-    if not number_input or not number_input.isdigit() or len(number_input) != 4:
-        st.warning("Please enter a valid 4-digit number.")
-    else:
-        result = get_from_latest_drawno(number_input)
-        st.success(f"Result: {result}")
