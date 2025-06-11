@@ -64,6 +64,8 @@ def run_Scraping(numberList, genPermutation):
                 st.line_chart(lineChartDF, use_container_width=True)
                 st.dataframe(SetResultData['PrizeCode'].value_counts().sort_index(ascending=True))
 
+        FreqAll = pd.DataFrame()  # <-- Initialize ONCE here, OUTSIDE the loop
+
         for n in numberList:
             ResultsAll = pd.DataFrame()
             try:
@@ -79,12 +81,11 @@ def run_Scraping(numberList, genPermutation):
                     SetResultData = None
                     while SetResultData is None:
                         SetResultData = GetResultsJson(n)
-                    st.dataframe(SetResultData.sort_values(by=['DrawDate'], ascending=False), width=400)
                     ResultsAll = SetResultData.copy()
             except:
                 pass
 
-            with st.expander(label="Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0]), expanded=True):
+            with st.expander(label="Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0]), expanded=False):
                 lineChartDF = pd.DataFrame({
                     'date': ResultsAll['DrawDate'].values.tolist(),
                     'prizeCode': ResultsAll['PrizeCode'].values.tolist()
@@ -102,20 +103,32 @@ def run_Scraping(numberList, genPermutation):
                 st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
                 st.dataframe(ResultsAll['Digit'].value_counts())
 
-                # New Enhanced Frequency Table with "From Latest DrawNo"
+                # Enhanced Frequency Table
                 with st.spinner("Fetching 'From Latest DrawNo' values..."):
-                        freq_df = ResultsAll['Digit'].value_counts().reset_index()
-                        freq_df.columns = ['Digit', 'Frequency']
-                        freq_df['From Latest DrawNo'] = freq_df['Digit'].apply(get_from_latest_drawno)
-                        st.dataframe(freq_df)
+                    freq_df = ResultsAll['Digit'].value_counts().reset_index()
+                    freq_df.columns = ['Digit', 'Frequency']
+                    if genPermutation:
+                        freq_df['From Latest DrawNo'] = freq_df['Digit'].astype(object).apply(lambda x: get_from_latest_drawno(x, "no"))
+                    else:
+                        freq_df['From Latest DrawNo'] = freq_df['Digit'].astype(object).apply(lambda x: get_from_latest_drawno(x, "yes"))
 
-                tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
-                st.markdown(tmp_download_link, unsafe_allow_html=True)
+                    FreqAll = pd.concat([FreqAll, freq_df], ignore_index=True)
 
+        # Optional: group by digit and sum frequencies to avoid duplicates in FreqAll
+        if not FreqAll.empty:
+            FreqAll = FreqAll.groupby('Digit', as_index=False).agg({
+                'Frequency': 'sum',
+                'From Latest DrawNo': 'min'  # or other aggregation logic you prefer
+            })
+
+        st.dataframe(FreqAll)
+        tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
+        st.markdown(tmp_download_link, unsafe_allow_html=True)
         st.markdown("<div style='text-align:right'><a href='#top'>------- ↟ Go to top ↟ -------</a></div>", unsafe_allow_html=True)
 
     except:
         pass
+
 
 def filterList(numberList):
     numberClean = []
