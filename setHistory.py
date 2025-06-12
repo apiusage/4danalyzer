@@ -122,7 +122,7 @@ def run_Scraping(numberList, genPermutation):
             })
 
         st.dataframe(FreqAll)
-        tmp_download_link = download_link(ResultsAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
+        tmp_download_link = download_link(FreqAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
         st.markdown(tmp_download_link, unsafe_allow_html=True)
         st.markdown("<div style='text-align:right'><a href='#top'>------- ↟ Go to top ↟ -------</a></div>", unsafe_allow_html=True)
 
