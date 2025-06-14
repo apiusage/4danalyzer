@@ -89,7 +89,7 @@ def analyze_prize(df, prize_name):
     st.success(f"✅ Total Numbers Analyzed: {len(numbers)}")
 
     # Add prediction
-    // predict_next_number(df, prize_name)
+    # predict_next_number(df, prize_name)
 
 def double_digit_count(numbers, dates):
     results = []
