@@ -1,9 +1,7 @@
 import streamlit as st
 from PIL import Image
 from setAnalysis import run_setAnalysis
-from digitAnalysis import run_digitAnalysis
 from setHistory import *
-from scraping import run_scraping
 import streamlit.components.v1 as stc
 from streamlit_option_menu import option_menu
 
@@ -28,12 +26,8 @@ def main():
 
     if choice == "Set History":
          run_setHistory()
-    elif choice == "Set Analysis":
+    elif choice == "In-Depth Analysis":
         run_setAnalysis()
-    elif choice == "Digit Analysis":
-        run_digitAnalysis()
-    elif choice == "Run Scraping":
-        run_scraping()
     else:
         st.info("__About__")
         st.write("A web application to analyze past 4D winning numbers.")
@@ -55,9 +49,8 @@ def main():
 
 def optionMenu():
     option = option_menu("4D Analyzer",
-                         ["Set History", "Set Analysis", "Digit Analysis", "Run Scraping", "About"],
-                         icons=['house-heart-fill', 'graph-up', 'graph-up-arrow', 'wallet', 'card-checklist',
-                                'question-circle'],
+                         ["Set History", "In-Depth Analysis", "About"],
+                         icons=['house-heart-fill', 'graph-up', 'question-circle'],
                          orientation="horizontal", menu_icon="dice-4-fill", default_index=0,
                          styles={
                              "container": {"padding": "5!important", "background-color": "#fafafa"},

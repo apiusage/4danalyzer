@@ -38,7 +38,7 @@ def run_Scraping(numberList, genPermutation):
         def getDateFromDrawDate(x):
             x = x.replace('/Date(', '').replace(')/', '')
             local_time = datetime.fromtimestamp(int(x) / 1000)
-            local_time += timedelta(days=1)
+            # local_time += timedelta(days=1)
             return local_time.strftime('%Y-%m-%d')
 
         def GetResultsJson(num):
@@ -64,7 +64,50 @@ def run_Scraping(numberList, genPermutation):
                 st.line_chart(lineChartDF, use_container_width=True)
                 st.dataframe(SetResultData['PrizeCode'].value_counts().sort_index(ascending=True))
 
-        FreqAll = pd.DataFrame()  # <-- Initialize ONCE here, OUTSIDE the loop
+        FreqAll = pd.DataFrame()
+        AllResultsCombined = pd.DataFrame()
+
+        def highlight_positive(s):
+            # s is a Series or DataFrame
+            # return a DataFrame of styles with background color if value > 0
+            is_positive = s > 0
+            return ['background-color: yellow' if v else '' for v in is_positive]
+
+        def display_year_month_summary(ResultsAll):
+            if ResultsAll.empty:
+                st.write("No data available.")
+                return
+
+            df = ResultsAll.copy()
+            df['DrawDate'] = pd.to_datetime(df['DrawDate'], errors='coerce')
+            df = df.dropna(subset=['DrawDate'])
+            df['Year'] = df['DrawDate'].dt.year
+            df['Month'] = df['DrawDate'].dt.month
+
+            pivot = df.pivot_table(index='Year', columns='Month', values='Digit', aggfunc='count', fill_value=0)
+            pivot.columns = [datetime(2000, m, 1).strftime('%b') for m in pivot.columns]
+            pivot['Total'] = pivot.sum(axis=1)
+
+            avg = pivot.mean(numeric_only=True).to_frame().T
+            avg.index = ['Average']
+
+            # ✅ Sort descending and place Average first
+            pivot = pivot.astype(int).sort_index(ascending=False)
+            combined = pd.concat([avg, pivot])
+            combined.index = combined.index.map(str)
+            combined.columns = [str(c) for c in combined.columns]
+
+            styled = (
+                combined.style
+                .format({col: '{:.2f}' for col in combined.columns}, subset=pd.IndexSlice[['Average'], :])
+                .format({col: '{:.0f}' for col in combined.columns},
+                        subset=pd.IndexSlice[combined.index.difference(['Average']), :])
+                .apply(highlight_positive)  # apply your color function here
+                .set_properties(**{'text-align': 'center'})
+            )
+
+            st.header("📊 Year-Month Summary Table")
+            st.dataframe(styled, height=500)
 
         for n in numberList:
             ResultsAll = pd.DataFrame()
@@ -85,7 +128,9 @@ def run_Scraping(numberList, genPermutation):
             except:
                 pass
 
-            with st.expander(label="Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0]), expanded=False):
+            AllResultsCombined = pd.concat([AllResultsCombined, ResultsAll], ignore_index=True)
+
+            with st.expander(label="Set: " + n + " / Total Freq: " + str(ResultsAll.shape[0]), expanded=True):
                 lineChartDF = pd.DataFrame({
                     'date': ResultsAll['DrawDate'].values.tolist(),
                     'prizeCode': ResultsAll['PrizeCode'].values.tolist()
@@ -101,9 +146,12 @@ def run_Scraping(numberList, genPermutation):
                     st_copy_to_clipboard(column_to_copy)
 
                 st.dataframe(ResultsAll['PrizeCode'].value_counts().sort_index(ascending=True))
-                st.dataframe(ResultsAll['Digit'].value_counts())
+                # st.dataframe(ResultsAll['Digit'].value_counts())
 
-                # Enhanced Frequency Table
+                # ➕ NEW: Year-Month Pivot Summary
+                if not ResultsAll.empty:
+                    display_year_month_summary(ResultsAll)
+
                 with st.spinner("Fetching 'From Latest DrawNo' values..."):
                     freq_df = ResultsAll['Digit'].value_counts().reset_index()
                     freq_df.columns = ['Digit', 'Frequency']
@@ -114,20 +162,20 @@ def run_Scraping(numberList, genPermutation):
 
                     FreqAll = pd.concat([FreqAll, freq_df], ignore_index=True)
 
-        # Optional: group by digit and sum frequencies to avoid duplicates in FreqAll
+        # Group by Digit to remove duplicates
         if not FreqAll.empty:
             FreqAll = FreqAll.groupby('Digit', as_index=False).agg({
                 'Frequency': 'sum',
-                'From Latest DrawNo': 'min'  # or other aggregation logic you prefer
+                'From Latest DrawNo': 'min'
             })
+            st.dataframe(FreqAll)
+            tmp_download_link = download_link(FreqAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
+            st.markdown(tmp_download_link, unsafe_allow_html=True)
 
-        st.dataframe(FreqAll)
-        tmp_download_link = download_link(FreqAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
-        st.markdown(tmp_download_link, unsafe_allow_html=True)
         st.markdown("<div style='text-align:right'><a href='#top'>------- ↟ Go to top ↟ -------</a></div>", unsafe_allow_html=True)
 
-    except:
-        pass
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
 
 
 def filterList(numberList):
