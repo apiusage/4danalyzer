@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from collections import Counter
+import requests
 
 # ML imports
 from sklearn.ensemble import RandomForestClassifier
@@ -13,6 +14,9 @@ DOUBLE_DIGITS = [f"{i}{i}" for i in range(10)]  # 00, 11, ..., 99
 
 def run_setAnalysis():
     st.title("🎲 Singapore Pools 4D Analyzer")
+
+    output1, output2 = get_2d()
+    st.write("**2D:** " + output1 + " " + output2)
 
     # Load CSV and drop rows that are completely empty
     df = pd.read_csv("https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv")
@@ -30,6 +34,35 @@ def run_setAnalysis():
     for prize in ['1st', '2nd', '3rd']:
         with st.expander(f"🎯 {prize} Prize Analysis"):
             analyze_prize(df, prize)
+
+def fetch_4d_json():
+    url = 'https://raw.githubusercontent.com/apiusage/sg-4d-json/main/4d.json'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        st.error(f"Error fetching 4D JSON: {e}")
+        return None
+
+# https://www.youtube.com/watch?v=FD6ntv0aU6M
+def get_2d():
+    numbers = fetch_4d_json()
+    if not numbers:
+        return "", ""  # Return two empty strings on error
+    n = str(numbers[0]).zfill(4)
+    n = str(9999)
+    # 1st 2D
+    a = (int(n[0]) + int(n[1])) % 10
+    b = (int(n[2]) + int(n[3])) % 10
+    output1 = f"{a}{b}"
+
+    # 2nd 2D
+    first = (sum(int(d) for d in str(int(n[0]) + int(n[1])))) % 10
+    second = (int(n[2]) + int(n[3])) % 10
+    output2 = f"{first}{second}"
+
+    return output1, output2
 
 def analyze_prize(df, prize_name):
     numbers = df[prize_name].astype(str).str.zfill(4)
@@ -71,6 +104,8 @@ def analyze_prize(df, prize_name):
     st.markdown("### 📈 Digit Position Trends (Last 20 Draws)")
     recent_20 = df.sort_values('DrawDate').tail(20)[prize_name].astype(str).str.zfill(4).tolist()[::-1]
     digitAnalysis(recent_20)
+
+    plot_digit_sum_trend(df, prize_name)
 
     st.markdown("### 🔡 High–Low & Even–Odd Patterns")
     hl_df = digit_pattern_count(numbers, 'highlow')
@@ -137,6 +172,38 @@ def digitAnalysis(numberList):
 
     st.info("Digit 4")
     st.line_chart(pd.DataFrame({'Digit 4': digit4Data}))
+
+def plot_digit_sum_trend(df, prize_name):
+    st.markdown(f"### ➕ Digit Sum Trend – Last 30 Draws ({prize_name})")
+
+    # Sort and get last 30 draws
+    df_sorted = df.sort_values("DrawDate").tail(30)
+    numbers = df_sorted[prize_name].astype(str).str.zfill(4)
+    digit_sums = numbers.apply(lambda x: sum(int(d) for d in x))
+
+    chart_data = pd.DataFrame({
+        'DrawDate': df_sorted['DrawDate'],
+        'DigitSum': digit_sums
+    })
+
+    # Plot line chart
+    fig = px.line(chart_data, x='DrawDate', y='DigitSum',
+                  labels={'DrawDate': 'Draw Date', 'DigitSum': 'Digit Sum'})
+    st.plotly_chart(fig, use_container_width=True, key=f"{prize_name}_digitsum")
+
+    # Stats
+    avg_sum = digit_sums.mean()
+    max_sum = digit_sums.max()
+    min_sum = digit_sums.min()
+    std_sum = digit_sums.std()
+
+    st.markdown("#### 📊 Digit Sum Statistics (Last 20 Draws)")
+    stats_df = pd.DataFrame({
+        'Statistic': ['Average', 'Maximum', 'Minimum', 'Standard Deviation'],
+        'Value': [round(avg_sum, 2), max_sum, min_sum, round(std_sum, 2)]
+    })
+
+    st.dataframe(stats_df, use_container_width=True)
 
 def predict_next_number(df, prize_name):
     st.markdown("### 🤖 ML Predictions for Next Likely Number")
