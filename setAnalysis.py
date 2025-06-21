@@ -206,48 +206,53 @@ def plot_digit_sum_trend(df, prize_name):
 
     st.dataframe(stats_df, use_container_width=True)
 
+
 def prize_digit_breakdown(df, prize_name):
     st.markdown(f"### 🔢 Digit Frequency per {prize_name} Prize Number (Latest 100)")
 
     df = df[['DrawDate', prize_name]].dropna()
     df['DrawDate'] = pd.to_datetime(df['DrawDate'])
     df[prize_name] = df[prize_name].astype(str).str.zfill(4)
+    df = df.sort_values('DrawDate', ascending=False).head(100)
 
-    # Sort by latest and take only latest 100
-    df = df.sort_values('DrawDate', ascending=False).head(100).copy()
+    # Calculate digit frequency
+    digit_cols = [str(d) for d in range(10)]
+    freq_data = [[num.count(str(d)) for d in range(10)] for num in df[prize_name]]
+    numbers = df[prize_name].tolist()
 
-    # Create frequency rows
-    records = []
-    number_list = []  # will be used as row labels
-    for _, row in df.iterrows():
-        number = row[prize_name]
-        digit_counts = [number.count(str(d)) for d in range(10)]
-        records.append(digit_counts)
-        number_list.append(number)
-
-    # Create DataFrame with digit columns 0-9
-    digit_columns = [str(d) for d in range(10)]
-    summary_df = pd.DataFrame(records, columns=digit_columns)
-    summary_df.insert(0, 'Number', number_list)
-
-    # Ensure unique index
+    summary_df = pd.DataFrame(freq_data, columns=digit_cols)
+    summary_df.insert(0, 'Number', numbers)
     summary_df = summary_df.drop_duplicates(subset='Number')
-    summary_df = summary_df.set_index('Number')
-    summary_df.columns = summary_df.columns.astype(str)
 
-    # Define highlight function
+    # Average row (3 decimal places)
+    avg_values = summary_df[digit_cols].mean().round(3)
+    avg_row = pd.DataFrame([['Average'] + avg_values.tolist()], columns=['Number'] + digit_cols)
+
+    # Combine with data
+    summary_df = pd.concat([avg_row, summary_df], ignore_index=True)
+    summary_df.loc[1:, digit_cols] = summary_df.loc[1:, digit_cols].astype(int)
+
+    # --- STYLING ---
     def highlight_nonzero(val):
-        return 'background-color: yellow' if val > 0 else ''
+        try:
+            return 'background-color: yellow' if float(val) > 0 else ''
+        except:
+            return ''
 
-    # Apply style safely
+    def highlight_average(row):
+        if row['Number'] == 'Average':
+            return ['background-color: lightblue; font-weight: bold'] * len(row)
+        return [''] * len(row)
+
     styled_df = (
         summary_df.style
-        .applymap(highlight_nonzero)
+        .apply(highlight_average, axis=1)
+        .map(highlight_nonzero, subset=pd.IndexSlice[1:, digit_cols])  # only data rows
+        .format(precision=3, subset=pd.IndexSlice[0, digit_cols])      # avg row
+        .format(precision=0, subset=pd.IndexSlice[1:, digit_cols])     # rest
         .set_properties(**{'text-align': 'center'})
-        .set_table_styles([{'selector': 'th', 'props': [('text-align', 'center')]}])
     )
 
-    # Show in Streamlit
     st.dataframe(styled_df, use_container_width=True)
 
 def predict_next_number(df, prize_name):
