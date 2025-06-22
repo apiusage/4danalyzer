@@ -51,7 +51,7 @@ def get_2d():
     if not numbers:
         return "", ""  # Return two empty strings on error
     n = str(numbers[0]).zfill(4)
-    # Overriding n to '9999' as per your original code (you might want to revisit this)
+    # You override n to "9999" in your code — keep it or remove?
     n = "9999"
     # 1st 2D
     a = (int(n[0]) + int(n[1])) % 10
@@ -88,29 +88,29 @@ def analyze_prize(df, prize_name):
     double_df = double_digit_count(numbers, dates)
     st.dataframe(double_df[['DoubleDigit', 'Frequency']], use_container_width=True)
 
-    selected = st.selectbox(f"Select Double Digit in {prize_name}", double_df['DoubleDigit'], key=prize_name)
+    selected = st.selectbox(f"Select Double Digit in {prize_name}", double_df['DoubleDigit'], key=f"double_{prize_name}")
     recent_dates = double_df.set_index('DoubleDigit').loc[selected, 'LastDates']
 
     timeline_df = pd.DataFrame({
-        'DrawDate': pd.to_datetime(recent_dates),
-        'Occurrence': list(range(len(recent_dates), 0, -1))
-    }).sort_values('DrawDate')
+        'DrawDate': pd.to_datetime(recent_dates)
+    }).sort_values('DrawDate').reset_index(drop=True)
 
-    fig = px.line(
+    timeline_df['GapInDays'] = timeline_df['DrawDate'].diff().dt.days.fillna(0)
+
+    fig = px.bar(
         timeline_df,
         x='DrawDate',
-        y='Occurrence',
-        title=f"Last 20 Times {selected} Appeared in {prize_name}",
-        markers=True  # optional: shows points on the line
+        y='GapInDays',
+        title=f"Gaps Between Last 20 {selected} in {prize_name} (in Days)",
+        labels={'DrawDate': 'Draw Date', 'GapInDays': 'Gap (Days)'}
     )
-    st.plotly_chart(fig, use_container_width=True, key=f"{prize_name}_double")
+    st.plotly_chart(fig, use_container_width=True)
 
     digit_position_trends_tabs(df, prize_name)
 
     plot_digit_sum_trend(df, prize_name)
 
     st.markdown("### 🔡 High–Low & Even–Odd Patterns")
-
 
     digit_pattern_count_tabs(df, prize_name, 'highlow')
 
@@ -124,9 +124,11 @@ def double_digit_count(numbers, dates):
     for dd in DOUBLE_DIGITS:
         matched = [date for num, date in zip(numbers, dates) if dd in num]
         if matched:
-            results.append((dd, len(matched), matched[-20:]))
+            # Sort dates descending and pick last 20 latest dates
+            matched_sorted = sorted(matched, reverse=True)[:20]
+            results.append((dd, len(matched), matched_sorted))
     df = pd.DataFrame(results, columns=['DoubleDigit', 'Frequency', 'LastDates'])
-    return df.sort_values(by='Frequency', ascending=False)
+    return df.sort_values(by='Frequency', ascending=False).reset_index(drop=True)
 
 def get_digit_pattern(num, mode='highlow'):
     num = str(num).zfill(4)
@@ -143,8 +145,6 @@ def digit_pattern_count(numbers, mode='highlow'):
     return df
 
 def digit_pattern_count_tabs(df, prize_name, mode='highlow'):
-    st.markdown("#### High-Low (L=0–4, H=5–9)")
-
     tab_titles = ["📊 All", "📅 6 Months", "📆 14 Days", "📆 1 Month", "📈 1 Year"]
     days_map = {
         "📅 6 Months": 180,
@@ -162,7 +162,6 @@ def digit_pattern_count_tabs(df, prize_name, mode='highlow'):
             else:
                 cutoff = pd.Timestamp.today() - pd.Timedelta(days=days_map[tab_title])
                 filtered = df[df['DrawDate'] >= cutoff]
-                st.markdown(f"#### Showing data for the past {days_map[tab_title]} days")
 
             if filtered.empty:
                 st.warning("No data available for this time range.")
@@ -219,7 +218,6 @@ def digit_position_trends_tabs(df, prize_name):
 
             st.info("Digit 4")
             st.line_chart(pd.DataFrame({'Digit 4': digit4Data}))
-
 
 def plot_digit_sum_trend(df, prize_name):
     st.markdown(f"### ➕ Digit Sum Trend ({prize_name})")
