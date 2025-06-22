@@ -30,7 +30,7 @@ def run_setAnalysis():
     for prize in ['1st', '2nd', '3rd']:
         df[prize] = df[prize].astype(str).str.zfill(4)
 
-    # Analyze for 1st, 2nd, 3rd
+    # Analyze for 1st, 2nd, 3rd prizes
     for prize in ['1st', '2nd', '3rd']:
         with st.expander(f"🎯 {prize} Prize Analysis"):
             prize_digit_breakdown(df, prize)
@@ -46,13 +46,13 @@ def fetch_4d_json():
         st.error(f"Error fetching 4D JSON: {e}")
         return None
 
-# https://www.youtube.com/watch?v=FD6ntv0aU6M
 def get_2d():
     numbers = fetch_4d_json()
     if not numbers:
         return "", ""  # Return two empty strings on error
     n = str(numbers[0]).zfill(4)
-    n = str(9999)
+    # Overriding n to '9999' as per your original code (you might want to revisit this)
+    n = "9999"
     # 1st 2D
     a = (int(n[0]) + int(n[1])) % 10
     b = (int(n[2]) + int(n[3])) % 10
@@ -72,19 +72,21 @@ def analyze_prize(df, prize_name):
     st.markdown(f"### 🏆 Most Frequent {prize_name} Numbers")
     freq_df = numbers.value_counts().reset_index()
     freq_df.columns = ['Number', 'Frequency']
-    st.dataframe(freq_df)
+    st.dataframe(freq_df.head(200), use_container_width=True)
 
     st.markdown("### 🔢 Digit-by-Position Frequency")
     for i in range(4):
         digit_freq = numbers.str[i].value_counts().sort_index()
-        fig = px.bar(x=digit_freq.index, y=digit_freq.values,
-                     labels={'x': f"Digit {i+1}", 'y': 'Frequency'},
-                     title=f"{prize_name} – Digit Position {i+1}")
+        fig = px.bar(
+            x=digit_freq.index, y=digit_freq.values,
+            labels={'x': f"Digit {i+1}", 'y': 'Frequency'},
+            title=f"{prize_name} – Digit Position {i+1}"
+        )
         st.plotly_chart(fig, use_container_width=True, key=f"{prize_name}_pos{i}")
 
     st.markdown("### 🔁 Double Digits (e.g., 00, 11, ...)")
     double_df = double_digit_count(numbers, dates)
-    st.dataframe(double_df[['DoubleDigit', 'Frequency']])
+    st.dataframe(double_df[['DoubleDigit', 'Frequency']], use_container_width=True)
 
     selected = st.selectbox(f"Select Double Digit in {prize_name}", double_df['DoubleDigit'], key=prize_name)
     recent_dates = double_df.set_index('DoubleDigit').loc[selected, 'LastDates']
@@ -94,46 +96,33 @@ def analyze_prize(df, prize_name):
         'Occurrence': list(range(len(recent_dates), 0, -1))
     }).sort_values('DrawDate')
 
-    fig = px.bar(
+    fig = px.line(
         timeline_df,
         x='DrawDate',
         y='Occurrence',
-        title=f"Last 20 Times {selected} Appeared in {prize_name}"
+        title=f"Last 20 Times {selected} Appeared in {prize_name}",
+        markers=True  # optional: shows points on the line
     )
     st.plotly_chart(fig, use_container_width=True, key=f"{prize_name}_double")
 
-    st.markdown("### 📈 Digit Position Trends (Last 20 Draws)")
-    recent_20 = df.sort_values('DrawDate').tail(20)[prize_name].astype(str).str.zfill(4).tolist()[::-1]
-    digitAnalysis(recent_20)
+    digit_position_trends_tabs(df, prize_name)
 
     plot_digit_sum_trend(df, prize_name)
 
     st.markdown("### 🔡 High–Low & Even–Odd Patterns")
-    hl_df = digit_pattern_count(numbers, 'highlow')
-    eo_df = digit_pattern_count(numbers, 'evenodd')
 
-    st.markdown("**High–Low (L=0–4, H=5–9)**")
-    st.dataframe(hl_df)
-    st.plotly_chart(px.bar(hl_df, x='Pattern', y='Frequency', title=f"{prize_name} H/L Patterns"),
-                    use_container_width=True, key=f"{prize_name}_hl")
 
-    st.markdown("**Even–Odd (E=Even, O=Odd)**")
-    st.dataframe(eo_df)
-    st.plotly_chart(px.bar(eo_df, x='Pattern', y='Frequency', title=f"{prize_name} E/O Patterns"),
-                    use_container_width=True, key=f"{prize_name}_eo")
+    digit_pattern_count_tabs(df, prize_name, 'highlow')
+
+    st.markdown("#### Even-Odd (E=Even, O=Odd)")
+    digit_pattern_count_tabs(df, prize_name, 'evenodd')
 
     st.success(f"✅ Total Numbers Analyzed: {len(numbers)}")
-
-    # Add prediction
-    # predict_next_number(df, prize_name)
 
 def double_digit_count(numbers, dates):
     results = []
     for dd in DOUBLE_DIGITS:
-        matched = []
-        for num, date in zip(numbers, dates):
-            if dd in num:
-                matched.append(date)
+        matched = [date for num, date in zip(numbers, dates) if dd in num]
         if matched:
             results.append((dd, len(matched), matched[-20:]))
     df = pd.DataFrame(results, columns=['DoubleDigit', 'Frequency', 'LastDates'])
@@ -145,6 +134,7 @@ def get_digit_pattern(num, mode='highlow'):
         return ''.join(['H' if int(d) >= 5 else 'L' for d in num])
     elif mode == 'evenodd':
         return ''.join(['E' if int(d) % 2 == 0 else 'O' for d in num])
+    return ''
 
 def digit_pattern_count(numbers, mode='highlow'):
     patterns = [get_digit_pattern(n, mode) for n in numbers]
@@ -152,60 +142,135 @@ def digit_pattern_count(numbers, mode='highlow'):
     df = df.sort_values(by='Frequency', ascending=False)
     return df
 
-def digitAnalysis(numberList):
-    digit1Data, digit2Data, digit3Data, digit4Data = [], [], [], []
+def digit_pattern_count_tabs(df, prize_name, mode='highlow'):
+    st.markdown("#### High-Low (L=0–4, H=5–9)")
 
-    if numberList is not None:
-        for num in numberList:
-            digit1Data.insert(0, int(num[0]))
-            digit2Data.insert(0, int(num[1]))
-            digit3Data.insert(0, int(num[2]))
-            digit4Data.insert(0, int(num[3]))
+    tab_titles = ["📊 All", "📅 6 Months", "📆 14 Days", "📆 1 Month", "📈 1 Year"]
+    days_map = {
+        "📅 6 Months": 180,
+        "📆 14 Days": 14,
+        "📆 1 Month": 30,
+        "📈 1 Year": 365
+    }
 
-    st.info("Digit 1")
-    st.line_chart(pd.DataFrame({'Digit 1': digit1Data}))
+    tabs = st.tabs(tab_titles)
 
-    st.info("Digit 2")
-    st.line_chart(pd.DataFrame({'Digit 2': digit2Data}))
+    for tab_title, tab in zip(tab_titles, tabs):
+        with tab:
+            if tab_title == "📊 All":
+                filtered = df
+            else:
+                cutoff = pd.Timestamp.today() - pd.Timedelta(days=days_map[tab_title])
+                filtered = df[df['DrawDate'] >= cutoff]
+                st.markdown(f"#### Showing data for the past {days_map[tab_title]} days")
 
-    st.info("Digit 3")
-    st.line_chart(pd.DataFrame({'Digit 3': digit3Data}))
+            if filtered.empty:
+                st.warning("No data available for this time range.")
+                continue
 
-    st.info("Digit 4")
-    st.line_chart(pd.DataFrame({'Digit 4': digit4Data}))
+            numbers = filtered[prize_name].astype(str).str.zfill(4).tolist()
+            pattern_df = digit_pattern_count(numbers, mode)
+            st.dataframe(pattern_df, use_container_width=True)
+            st.bar_chart(pattern_df.set_index('Pattern')['Frequency'])
+
+def digit_position_trends_tabs(df, prize_name):
+    st.markdown("### 📈 Digit Position Trends")
+
+    tab_titles = ["📅 2 Months", "📅 6 Months", "📅 14 Days", "📆 1 Month", "📈 1 Year"]
+    days_map = {
+        "📅 2 Months": 60,
+        "📅 6 Months": 180,
+        "📅 14 Days": 14,
+        "📆 1 Month": 30,
+        "📈 1 Year": 365
+    }
+
+    tabs = st.tabs(tab_titles)
+
+    for tab_title, tab in zip(tab_titles, tabs):
+        with tab:
+            days = days_map[tab_title]
+            cutoff = pd.Timestamp.today() - pd.Timedelta(days=days)
+            filtered = df[df['DrawDate'] >= cutoff].sort_values('DrawDate')
+
+            if filtered.empty:
+                st.warning(f"No data available for the past {days} days.")
+                continue
+
+            numbers_list = filtered[prize_name].astype(str).str.zfill(4).tolist()
+
+            digit1Data, digit2Data, digit3Data, digit4Data = [], [], [], []
+
+            for num in numbers_list:
+                # Append in natural order so time flows left-to-right (old to new)
+                digit1Data.append(int(num[0]))
+                digit2Data.append(int(num[1]))
+                digit3Data.append(int(num[2]))
+                digit4Data.append(int(num[3]))
+
+            st.info("Digit 1")
+            st.line_chart(pd.DataFrame({'Digit 1': digit1Data}))
+
+            st.info("Digit 2")
+            st.line_chart(pd.DataFrame({'Digit 2': digit2Data}))
+
+            st.info("Digit 3")
+            st.line_chart(pd.DataFrame({'Digit 3': digit3Data}))
+
+            st.info("Digit 4")
+            st.line_chart(pd.DataFrame({'Digit 4': digit4Data}))
+
 
 def plot_digit_sum_trend(df, prize_name):
-    st.markdown(f"### ➕ Digit Sum Trend – Last 30 Draws ({prize_name})")
+    st.markdown(f"### ➕ Digit Sum Trend ({prize_name})")
 
-    # Sort and get last 30 draws
-    df_sorted = df.sort_values("DrawDate").tail(30)
-    numbers = df_sorted[prize_name].astype(str).str.zfill(4)
-    digit_sums = numbers.apply(lambda x: sum(int(d) for d in x))
+    tab60, tab180, tab14, tab30, tab365 = st.tabs(["📅 2 Months", "📅 6 Months", "📅 14 Days", "📆 1 Month", "📈 1 Year"])
+    tab_map = {
+        tab60: 60,
+        tab180: 180,
+        tab14: 14,
+        tab30: 30,
+        tab365: 365
+    }
 
-    chart_data = pd.DataFrame({
-        'DrawDate': df_sorted['DrawDate'],
-        'DigitSum': digit_sums
-    })
+    for tab, days in tab_map.items():
+        with tab:
+            st.markdown(f"#### Showing digit sums for the past {days} days")
 
-    # Plot line chart
-    fig = px.line(chart_data, x='DrawDate', y='DigitSum',
-                  labels={'DrawDate': 'Draw Date', 'DigitSum': 'Digit Sum'})
-    st.plotly_chart(fig, use_container_width=True, key=f"{prize_name}_digitsum")
+            cutoff_date = pd.Timestamp.today() - pd.Timedelta(days=days)
+            df_filtered = df[df['DrawDate'] >= cutoff_date].sort_values("DrawDate")
 
-    # Stats
-    avg_sum = digit_sums.mean()
-    max_sum = digit_sums.max()
-    min_sum = digit_sums.min()
-    std_sum = digit_sums.std()
+            if df_filtered.empty:
+                st.warning("No data available for this time range.")
+                continue
 
-    st.markdown("#### 📊 Digit Sum Statistics (Last 20 Draws)")
-    stats_df = pd.DataFrame({
-        'Statistic': ['Average', 'Maximum', 'Minimum', 'Standard Deviation'],
-        'Value': [round(avg_sum, 2), max_sum, min_sum, round(std_sum, 2)]
-    })
+            numbers = df_filtered[prize_name].astype(str).str.zfill(4)
+            digit_sums = numbers.apply(lambda x: sum(int(d) for d in x))
 
-    st.dataframe(stats_df, use_container_width=True)
+            chart_data = pd.DataFrame({
+                'DrawDate': df_filtered['DrawDate'],
+                'DigitSum': digit_sums
+            })
 
+            fig = px.line(
+                chart_data, x='DrawDate', y='DigitSum',
+                labels={'DrawDate': 'Draw Date', 'DigitSum': 'Digit Sum'},
+                title=f"{prize_name} Digit Sum Trend – Last {days} Days"
+            )
+            st.plotly_chart(fig, use_container_width=True, key=f"{prize_name}_digitsum_{days}")
+
+            avg_sum = digit_sums.mean()
+            max_sum = digit_sums.max()
+            min_sum = digit_sums.min()
+            std_sum = digit_sums.std()
+
+            st.markdown("#### 📊 Digit Sum Statistics")
+            stats_df = pd.DataFrame({
+                'Statistic': ['Average', 'Maximum', 'Minimum', 'Standard Deviation'],
+                'Value': [round(avg_sum, 2), max_sum, min_sum, round(std_sum, 2)]
+            })
+
+            st.dataframe(stats_df, use_container_width=True)
 
 def prize_digit_breakdown(df, prize_name):
     st.markdown(f"### 🔢 Digit Frequency per {prize_name} Prize Number (Latest 100)")
@@ -215,7 +280,6 @@ def prize_digit_breakdown(df, prize_name):
     df[prize_name] = df[prize_name].astype(str).str.zfill(4)
     df = df.sort_values('DrawDate', ascending=False).head(100)
 
-    # Calculate digit frequency
     digit_cols = [str(d) for d in range(10)]
     freq_data = [[num.count(str(d)) for d in range(10)] for num in df[prize_name]]
     numbers = df[prize_name].tolist()
@@ -224,15 +288,12 @@ def prize_digit_breakdown(df, prize_name):
     summary_df.insert(0, 'Number', numbers)
     summary_df = summary_df.drop_duplicates(subset='Number')
 
-    # Average row (3 decimal places)
     avg_values = summary_df[digit_cols].mean().round(3)
     avg_row = pd.DataFrame([['Average'] + avg_values.tolist()], columns=['Number'] + digit_cols)
 
-    # Combine with data
     summary_df = pd.concat([avg_row, summary_df], ignore_index=True)
     summary_df.loc[1:, digit_cols] = summary_df.loc[1:, digit_cols].astype(int)
 
-    # --- STYLING ---
     def highlight_nonzero(val):
         try:
             return 'background-color: yellow' if float(val) > 0 else ''
@@ -247,9 +308,9 @@ def prize_digit_breakdown(df, prize_name):
     styled_df = (
         summary_df.style
         .apply(highlight_average, axis=1)
-        .map(highlight_nonzero, subset=pd.IndexSlice[1:, digit_cols])  # only data rows
-        .format(precision=3, subset=pd.IndexSlice[0, digit_cols])      # avg row
-        .format(precision=0, subset=pd.IndexSlice[1:, digit_cols])     # rest
+        .map(highlight_nonzero, subset=pd.IndexSlice[1:, digit_cols])
+        .format(precision=3, subset=pd.IndexSlice[0, digit_cols])
+        .format(precision=0, subset=pd.IndexSlice[1:, digit_cols])
         .set_properties(**{'text-align': 'center'})
     )
 
@@ -302,3 +363,6 @@ def predict_next_number(df, prize_name):
     st.info(f"📌 Last {prize_name} number: **{last}**")
     st.success(f"🔮 Random Forest Prediction: **{rf_pred}**")
     st.success(f"🔮 KNN Prediction: **{knn_pred}**")
+
+if __name__ == "__main__":
+    run_setAnalysis()
