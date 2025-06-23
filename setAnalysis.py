@@ -3,364 +3,290 @@ import pandas as pd
 import plotly.express as px
 from collections import Counter
 import requests
-
 # ML imports
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
+# ────────────────────────────────────────────────────────────────
+# 🔧 GLOBAL CONSTANTS
+# ────────────────────────────────────────────────────────────────
+DOUBLE_DIGITS = [f"{i}{i}" for i in range(10)]          # 00, 11, …
 
-DOUBLE_DIGITS = [f"{i}{i}" for i in range(10)]  # 00, 11, ..., 99
+# Generic time-filter tabs (includes “All”)
+TIME_TABS = ["📊 All", "📅 6 Months", "📆 14 Days", "📆 1 Month", "📈 1 Year"]
+TIME_DAYS = {"📅 6 Months": 180, "📆 14 Days": 14, "📆 1 Month": 30, "📈 1 Year": 365}
 
+# Trend tabs (no “All”, but adds “2 Months”)
+TREND_TABS = ["📅 2 Months", "📅 6 Months", "📅 14 Days", "📆 1 Month", "📈 1 Year"]
+TREND_DAYS = {"📅 2 Months": 60, "📅 6 Months": 180,
+              "📅 14 Days": 14, "📆 1 Month": 30, "📈 1 Year": 365}
+# ────────────────────────────────────────────────────────────────
+# ╭───────────────────────────────╮
+# |      MAIN STREAMLIT APP       |
+# ╰───────────────────────────────╯
 def run_setAnalysis():
     st.title("🎲 Singapore Pools 4D Analyzer")
 
-    output1, output2 = get_2d()
-    st.write("**2D:** " + output1 + " " + output2)
+    # quick 2-D numbers
+    out1, out2 = get_2d()
+    st.write("**2D:**", out1, out2)
 
-    # Load CSV and drop rows that are completely empty
-    df = pd.read_csv("https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv")
-    df = df.dropna(how='all')  # Drop rows where all fields are NaN
-
-    # Parse dates
+    # load & clean CSV
+    url = "https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv"
+    df = pd.read_csv(url).dropna(how='all')
     df['DrawDate'] = pd.to_datetime(df['DrawDate'], errors='coerce', dayfirst=True)
-    df = df.dropna(subset=['DrawDate'])  # Drop rows without a valid date
+    df = df.dropna(subset=['DrawDate'])
 
-    # Zero-pad all prize columns to 4 digits
+    # zero-pad prize numbers
     for prize in ['1st', '2nd', '3rd']:
         df[prize] = df[prize].astype(str).str.zfill(4)
 
-    # Analyze for 1st, 2nd, 3rd prizes
+    # analyse each prize
     for prize in ['1st', '2nd', '3rd']:
         with st.expander(f"🎯 {prize} Prize Analysis"):
             prize_digit_breakdown(df, prize)
             analyze_prize(df, prize)
 
+# ╭───────────────────────────────╮
+# |      DATA FETCH HELPERS       |
+# ╰───────────────────────────────╯
 def fetch_4d_json():
     url = 'https://raw.githubusercontent.com/apiusage/sg-4d-json/main/4d.json'
     try:
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
+        r = requests.get(url)
+        r.raise_for_status()
+        return r.json()
     except requests.RequestException as e:
         st.error(f"Error fetching 4D JSON: {e}")
         return None
 
 def get_2d():
-    numbers = fetch_4d_json()
-    if not numbers:
-        return "", ""  # Return two empty strings on error
-    n = str(numbers[0]).zfill(4)
-    # You override n to "9999" in your code — keep it or remove?
-    n = "9999"
-    # 1st 2D
-    a = (int(n[0]) + int(n[1])) % 10
-    b = (int(n[2]) + int(n[3])) % 10
-    output1 = f"{a}{b}"
-
-    # 2nd 2D
-    first = (sum(int(d) for d in str(int(n[0]) + int(n[1])))) % 10
+    nums = fetch_4d_json()
+    if not nums:
+        return "", ""
+    n = str(nums[0]).zfill(4)
+    # 1st 2-D
+    a, b = (int(n[0]) + int(n[1])) % 10, (int(n[2]) + int(n[3])) % 10
+    # 2nd 2-D
+    first = sum(int(d) for d in str(int(n[0]) + int(n[1]))) % 10
     second = (int(n[2]) + int(n[3])) % 10
-    output2 = f"{first}{second}"
+    return f"{a}{b}", f"{first}{second}"
 
-    return output1, output2
+def double_digits_stats(numbers, dates, prize_name):
+    st.markdown("### 🔁 Double Digits (e.g., 00, 11 …)")
+    dd_df = double_digit_count(numbers, dates)
+    st.dataframe(dd_df[['DoubleDigit', 'Frequency']], use_container_width=True)
 
+    sel = st.selectbox(f"Select Double Digit in {prize_name}", dd_df['DoubleDigit'], key=f"dd_{prize_name}")
+    recent_dates = dd_df.set_index('DoubleDigit').loc[sel, 'LastDates']
+    draw_dates = pd.to_datetime(recent_dates)
+
+    tl_df = pd.DataFrame({
+        'DrawDate': draw_dates.strftime('%Y-%m-%d') + ' (' + draw_dates.strftime('%a') + ')'
+    })
+
+    tl_df['GapInDays'] = pd.Series(draw_dates.diff()).abs().dt.days.fillna(0).astype(int)
+    avg_gap = int(round(tl_df['GapInDays'][1:].mean()))
+
+    avg_row = pd.DataFrame([{'DrawDate': 'Average', 'GapInDays': avg_gap}])
+    tl_df_display = pd.concat([avg_row, tl_df], ignore_index=True)
+
+    st.write(tl_df_display.style.apply(
+        lambda r: ['background-color: #ffff99' if r.name == 0 else '' for _ in r], axis=1
+    ))
+# ╭───────────────────────────────╮
+# |        PRIZE ANALYSIS         |
+# ╰───────────────────────────────╯
 def analyze_prize(df, prize_name):
     numbers = df[prize_name].astype(str).str.zfill(4)
     dates = df['DrawDate']
 
+    # most-frequent numbers
     st.markdown(f"### 🏆 Most Frequent {prize_name} Numbers")
-    freq_df = numbers.value_counts().reset_index()
-    freq_df.columns = ['Number', 'Frequency']
+    freq_df = numbers.value_counts().reset_index(name='Frequency').rename(columns={'index': 'Number'})
     st.dataframe(freq_df.head(200), use_container_width=True)
 
-    st.markdown("### 🔢 Digit-by-Position Frequency")
-    for i in range(4):
-        digit_freq = numbers.str[i].value_counts().sort_index()
-        fig = px.bar(
-            x=digit_freq.index, y=digit_freq.values,
-            labels={'x': f"Digit {i+1}", 'y': 'Frequency'},
-            title=f"{prize_name} – Digit Position {i+1}"
-        )
-        st.plotly_chart(fig, use_container_width=True, key=f"{prize_name}_pos{i}")
+    # digit-by-position frequency ★ now uses global TIME_TABS / TIME_DAYS
+    st.markdown("### 🔢 Digit-by-Position Frequency (with Time Filters)")
+    tabs = st.tabs(TIME_TABS)
+    for tab, title in zip(tabs, TIME_TABS):
+        with tab:
+            filt = df if title == "📊 All" else df[df['DrawDate'] >= df['DrawDate'].max() - pd.Timedelta(days=TIME_DAYS[title])]
+            if filt.empty:
+                st.warning("No data available for this time range.")
+                continue
+            nums_f = filt[prize_name].astype(str).str.zfill(4)
+            for i in range(4):
+                freq = nums_f.str[i].value_counts().sort_index()
+                st.plotly_chart(
+                    px.bar(x=freq.index, y=freq.values,
+                           labels={'x': f'Digit {i+1}', 'y': 'Frequency'},
+                           title=f"{title} • Digit {i+1}"),
+                    use_container_width=True,
+                    key=f"{prize_name}_{title}_pos{i}"
+                )
 
-    st.markdown("### 🔁 Double Digits (e.g., 00, 11, ...)")
-    double_df = double_digit_count(numbers, dates)
-    st.dataframe(double_df[['DoubleDigit', 'Frequency']], use_container_width=True)
+    # double-digit counts
+    double_digits_stats(numbers, dates, prize_name)
 
-    selected = st.selectbox(f"Select Double Digit in {prize_name}", double_df['DoubleDigit'], key=f"double_{prize_name}")
-    recent_dates = double_df.set_index('DoubleDigit').loc[selected, 'LastDates']
-
-    timeline_df = pd.DataFrame({
-        'DrawDate': pd.to_datetime(recent_dates)
-    }).sort_values('DrawDate').reset_index(drop=True)
-
-    timeline_df['GapInDays'] = timeline_df['DrawDate'].diff().dt.days.fillna(0)
-
-    fig = px.bar(
-        timeline_df,
-        x='DrawDate',
-        y='GapInDays',
-        title=f"Gaps Between Last 20 {selected} in {prize_name} (in Days)",
-        labels={'DrawDate': 'Draw Date', 'GapInDays': 'Gap (Days)'}
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
+    # trends
     digit_position_trends_tabs(df, prize_name)
-
     plot_digit_sum_trend(df, prize_name)
 
+    # high-low / even-odd patterns
     st.markdown("### 🔡 High–Low & Even–Odd Patterns")
-
     digit_pattern_count_tabs(df, prize_name, 'highlow')
-
-    st.markdown("#### Even-Odd (E=Even, O=Odd)")
+    st.markdown("#### Even-Odd (E = Even, O = Odd)")
     digit_pattern_count_tabs(df, prize_name, 'evenodd')
 
     st.success(f"✅ Total Numbers Analyzed: {len(numbers)}")
 
+# ╭───────────────────────────────╮
+# |        HELPER ROUTINES        |
+# ╰───────────────────────────────╯
 def double_digit_count(numbers, dates):
-    results = []
+    rows = []
     for dd in DOUBLE_DIGITS:
-        matched = [date for num, date in zip(numbers, dates) if dd in num]
-        if matched:
-            # Sort dates descending and pick last 20 latest dates
-            matched_sorted = sorted(matched, reverse=True)[:20]
-            results.append((dd, len(matched), matched_sorted))
-    df = pd.DataFrame(results, columns=['DoubleDigit', 'Frequency', 'LastDates'])
-    return df.sort_values(by='Frequency', ascending=False).reset_index(drop=True)
+        hits = [d for n, d in zip(numbers, dates) if dd in n]
+        if hits:
+            rows.append((dd, len(hits), sorted(hits, reverse=True)[:20]))
+    return (pd.DataFrame(rows, columns=['DoubleDigit', 'Frequency', 'LastDates'])
+              .sort_values('Frequency', ascending=False, ignore_index=True))
 
-def get_digit_pattern(num, mode='highlow'):
+def get_digit_pattern(num, mode):
     num = str(num).zfill(4)
     if mode == 'highlow':
-        return ''.join(['H' if int(d) >= 5 else 'L' for d in num])
-    elif mode == 'evenodd':
-        return ''.join(['E' if int(d) % 2 == 0 else 'O' for d in num])
-    return ''
+        return ''.join('H' if int(d) >= 5 else 'L' for d in num)
+    return ''.join('E' if int(d) % 2 == 0 else 'O' for d in num)
 
-def digit_pattern_count(numbers, mode='highlow'):
-    patterns = [get_digit_pattern(n, mode) for n in numbers]
-    df = pd.DataFrame(Counter(patterns).items(), columns=['Pattern', 'Frequency'])
-    df = df.sort_values(by='Frequency', ascending=False)
-    return df
+def digit_pattern_count(numbers, mode):
+    pats = [get_digit_pattern(n, mode) for n in numbers]
+    return (pd.DataFrame(Counter(pats).items(), columns=['Pattern', 'Frequency'])
+              .sort_values('Frequency', ascending=False))
 
-def digit_pattern_count_tabs(df, prize_name, mode='highlow'):
-    tab_titles = ["📊 All", "📅 6 Months", "📆 14 Days", "📆 1 Month", "📈 1 Year"]
-    days_map = {
-        "📅 6 Months": 180,
-        "📆 14 Days": 14,
-        "📆 1 Month": 30,
-        "📈 1 Year": 365
-    }
-
-    tabs = st.tabs(tab_titles)
-
-    for tab_title, tab in zip(tab_titles, tabs):
+def digit_pattern_count_tabs(df, prize_name, mode):
+    tabs = st.tabs(TIME_TABS)
+    for tab, title in zip(tabs, TIME_TABS):
         with tab:
-            if tab_title == "📊 All":
-                filtered = df
-            else:
-                cutoff = pd.Timestamp.today() - pd.Timedelta(days=days_map[tab_title])
-                filtered = df[df['DrawDate'] >= cutoff]
-
-            if filtered.empty:
-                st.warning("No data available for this time range.")
+            filt = df if title == "📊 All" else df[df['DrawDate'] >= pd.Timestamp.today() - pd.Timedelta(days=TIME_DAYS[title])]
+            if filt.empty:
+                st.warning("No data for this range.")
                 continue
-
-            numbers = filtered[prize_name].astype(str).str.zfill(4).tolist()
-            pattern_df = digit_pattern_count(numbers, mode)
-            st.dataframe(pattern_df, use_container_width=True)
-            st.bar_chart(pattern_df.set_index('Pattern')['Frequency'])
+            patt_df = digit_pattern_count(filt[prize_name].astype(str).str.zfill(4), mode)
+            st.dataframe(patt_df, use_container_width=True)
+            st.bar_chart(patt_df.set_index('Pattern')['Frequency'])
 
 def digit_position_trends_tabs(df, prize_name):
     st.markdown("### 📈 Digit Position Trends")
-
-    tab_titles = ["📅 2 Months", "📅 6 Months", "📅 14 Days", "📆 1 Month", "📈 1 Year"]
-    days_map = {
-        "📅 2 Months": 60,
-        "📅 6 Months": 180,
-        "📅 14 Days": 14,
-        "📆 1 Month": 30,
-        "📈 1 Year": 365
-    }
-
-    tabs = st.tabs(tab_titles)
-
-    for tab_title, tab in zip(tab_titles, tabs):
+    tabs = st.tabs(TREND_TABS)
+    for tab, title in zip(tabs, TREND_TABS):
         with tab:
-            days = days_map[tab_title]
-            cutoff = pd.Timestamp.today() - pd.Timedelta(days=days)
-            filtered = df[df['DrawDate'] >= cutoff].sort_values('DrawDate')
-
-            if filtered.empty:
-                st.warning(f"No data available for the past {days} days.")
+            filt = df[df['DrawDate'] >= pd.Timestamp.today() - pd.Timedelta(days=TREND_DAYS[title])].sort_values('DrawDate')
+            if filt.empty:
+                st.warning(f"No data for {title}.")
                 continue
-
-            numbers_list = filtered[prize_name].astype(str).str.zfill(4).tolist()
-
-            digit1Data, digit2Data, digit3Data, digit4Data = [], [], [], []
-
-            for num in numbers_list:
-                # Append in natural order so time flows left-to-right (old to new)
-                digit1Data.append(int(num[0]))
-                digit2Data.append(int(num[1]))
-                digit3Data.append(int(num[2]))
-                digit4Data.append(int(num[3]))
-
-            st.info("Digit 1")
-            st.line_chart(pd.DataFrame({'Digit 1': digit1Data}))
-
-            st.info("Digit 2")
-            st.line_chart(pd.DataFrame({'Digit 2': digit2Data}))
-
-            st.info("Digit 3")
-            st.line_chart(pd.DataFrame({'Digit 3': digit3Data}))
-
-            st.info("Digit 4")
-            st.line_chart(pd.DataFrame({'Digit 4': digit4Data}))
+            nums = filt[prize_name].astype(str).str.zfill(4).tolist()
+            cols = {f'Digit {i+1}': [int(n[i]) for n in nums] for i in range(4)}
+            for label, series in cols.items():
+                st.info(label)
+                st.line_chart(pd.DataFrame({label: series}))
 
 def plot_digit_sum_trend(df, prize_name):
     st.markdown(f"### ➕ Digit Sum Trend ({prize_name})")
-
-    tab60, tab180, tab14, tab30, tab365 = st.tabs(["📅 2 Months", "📅 6 Months", "📅 14 Days", "📆 1 Month", "📈 1 Year"])
-    tab_map = {
-        tab60: 60,
-        tab180: 180,
-        tab14: 14,
-        tab30: 30,
-        tab365: 365
-    }
-
-    for tab, days in tab_map.items():
+    tabs = st.tabs(TREND_TABS)
+    for tab, title in zip(tabs, TREND_TABS):
         with tab:
-            st.markdown(f"#### Showing digit sums for the past {days} days")
-
-            cutoff_date = pd.Timestamp.today() - pd.Timedelta(days=days)
-            df_filtered = df[df['DrawDate'] >= cutoff_date].sort_values("DrawDate")
-
-            if df_filtered.empty:
-                st.warning("No data available for this time range.")
+            filt = df[df['DrawDate'] >= pd.Timestamp.today() - pd.Timedelta(days=TREND_DAYS[title])].sort_values('DrawDate')
+            if filt.empty:
+                st.warning("No data for this range.")
                 continue
-
-            numbers = df_filtered[prize_name].astype(str).str.zfill(4)
-            digit_sums = numbers.apply(lambda x: sum(int(d) for d in x))
-
-            chart_data = pd.DataFrame({
-                'DrawDate': df_filtered['DrawDate'],
-                'DigitSum': digit_sums
-            })
-
-            fig = px.line(
-                chart_data, x='DrawDate', y='DigitSum',
-                labels={'DrawDate': 'Draw Date', 'DigitSum': 'Digit Sum'},
-                title=f"{prize_name} Digit Sum Trend – Last {days} Days"
-            )
-            st.plotly_chart(fig, use_container_width=True, key=f"{prize_name}_digitsum_{days}")
-
-            avg_sum = digit_sums.mean()
-            max_sum = digit_sums.max()
-            min_sum = digit_sums.min()
-            std_sum = digit_sums.std()
-
-            st.markdown("#### 📊 Digit Sum Statistics")
-            stats_df = pd.DataFrame({
-                'Statistic': ['Average', 'Maximum', 'Minimum', 'Standard Deviation'],
-                'Value': [round(avg_sum, 2), max_sum, min_sum, round(std_sum, 2)]
-            })
-
-            st.dataframe(stats_df, use_container_width=True)
+            nums = filt[prize_name].astype(str).str.zfill(4)
+            sums = nums.apply(lambda x: sum(map(int, x)))
+            chart_df = pd.DataFrame({'DrawDate': filt['DrawDate'], 'DigitSum': sums})
+            st.plotly_chart(
+                px.line(chart_df, x='DrawDate', y='DigitSum',
+                        title=f"{title} • Digit Sum Trend",
+                        labels={'DrawDate': 'Draw Date', 'DigitSum': 'Sum'}),
+                use_container_width=True)
+            stats = chart_df['DigitSum'].agg(['mean', 'max', 'min', 'std']).round(2)
+            st.dataframe(stats.rename({'mean': 'Average', 'std': 'Std Dev'}).to_frame('Value'))
 
 def prize_digit_breakdown(df, prize_name):
-    st.markdown(f"### 🔢 Digit Frequency per {prize_name} Prize Number (Latest 100)")
+    st.markdown(f"### 🔢 Digit Frequency per {prize_name} Prize (Latest 100)")
 
-    df = df[['DrawDate', prize_name]].dropna()
-    df['DrawDate'] = pd.to_datetime(df['DrawDate'])
-    df[prize_name] = df[prize_name].astype(str).str.zfill(4)
-    df = df.sort_values('DrawDate', ascending=False).head(100)
+    recent = (df[['DrawDate', prize_name]].dropna()
+              .sort_values('DrawDate', ascending=False)
+              .head(100)
+              .reset_index(drop=True))  # <-- Reset index here
 
-    digit_cols = [str(d) for d in range(10)]
-    freq_data = [[num.count(str(d)) for d in range(10)] for num in df[prize_name]]
-    numbers = df[prize_name].tolist()
+    recent[prize_name] = recent[prize_name].astype(str).str.zfill(4)
 
-    summary_df = pd.DataFrame(freq_data, columns=digit_cols)
-    summary_df.insert(0, 'Number', numbers)
-    summary_df = summary_df.drop_duplicates(subset='Number')
+    digit_cols = list(map(str, range(10)))
+    freq = [[num.count(str(d)) for d in range(10)] for num in recent[prize_name]]
+    summary_df = pd.DataFrame(freq, columns=digit_cols)
+    summary_df.insert(0, 'Number', recent[prize_name])  # This will now align properly
 
-    avg_values = summary_df[digit_cols].mean().round(3)
-    avg_row = pd.DataFrame([['Average'] + avg_values.tolist()], columns=['Number'] + digit_cols)
-
+    # Add average row
+    avg = summary_df[digit_cols].mean().round(3)
+    avg_row = pd.DataFrame([['Average', *avg.tolist()]], columns=['Number'] + digit_cols)
     summary_df = pd.concat([avg_row, summary_df], ignore_index=True)
-    summary_df.loc[1:, digit_cols] = summary_df.loc[1:, digit_cols].astype(int)
 
-    def highlight_nonzero(val):
+    def highlight_nonzero(v):
         try:
-            return 'background-color: yellow' if float(val) > 0 else ''
+            return 'background-color: yellow' if float(v) > 0 else ''
         except:
             return ''
 
     def highlight_average(row):
-        if row['Number'] == 'Average':
-            return ['background-color: lightblue; font-weight: bold'] * len(row)
-        return [''] * len(row)
+        return ['background-color: lightblue; font-weight:bold'] * len(row) if row['Number'] == 'Average' else [''] * len(row)
 
     styled_df = (
         summary_df.style
         .apply(highlight_average, axis=1)
         .map(highlight_nonzero, subset=pd.IndexSlice[1:, digit_cols])
-        .format(precision=3, subset=pd.IndexSlice[0, digit_cols])
-        .format(precision=0, subset=pd.IndexSlice[1:, digit_cols])
-        .set_properties(**{'text-align': 'center'})
+        .format({col: "{:.3f}" for col in digit_cols}, subset=pd.IndexSlice[[0], digit_cols])
+        .format({col: "{:.0f}" for col in digit_cols}, subset=pd.IndexSlice[1:, digit_cols])
+        .set_properties(subset=summary_df.columns, **{'text-align': 'center'})
     )
 
     st.dataframe(styled_df, use_container_width=True)
 
+# ╭───────────────────────────────╮
+# |        (OPTIONAL) ML          |
+# ╰───────────────────────────────╯
 def predict_next_number(df, prize_name):
     st.markdown("### 🤖 ML Predictions for Next Likely Number")
+    df = df.sort_values('DrawDate')
+    nums = df[prize_name].astype(str).str.zfill(4)
 
-    df_sorted = df.sort_values('DrawDate')
-    numbers = df_sorted[prize_name].astype(str).str.zfill(4)
+    feats, targets = [], []
+    for cur, nxt in zip(nums[:-1], nums[1:]):
+        feats.append([int(cur[i]) for i in range(4)] +
+                     [sum(int(d)>=5 for d in cur), sum(int(d)%2==0 for d in cur)])
+        targets.append(nxt)
 
-    features = []
-    targets = []
-
-    for i in range(len(numbers) - 1):
-        current = numbers.iloc[i]
-        next_num = numbers.iloc[i + 1]
-        feat = [
-            int(current[0]), int(current[1]), int(current[2]), int(current[3]),
-            sum(1 for d in current if int(d) >= 5),
-            sum(1 for d in current if int(d) % 2 == 0)
-        ]
-        features.append(feat)
-        targets.append(next_num)
-
-    if len(features) < 10:
-        st.warning("Not enough data to train ML model.")
+    if len(feats) < 10:
+        st.warning("Not enough data to train ML models.")
         return
 
     le = LabelEncoder()
-    y_encoded = le.fit_transform(targets)
-    X_train, X_test, y_train, y_test = train_test_split(features, y_encoded, test_size=0.2, random_state=42)
+    y = le.fit_transform(targets)
+    X_tr, X_te, y_tr, y_te = train_test_split(feats, y, test_size=0.2, random_state=42)
 
-    rf = RandomForestClassifier(n_estimators=100, random_state=42)
-    rf.fit(X_train, y_train)
+    rf = RandomForestClassifier(n_estimators=100, random_state=42).fit(X_tr, y_tr)
+    knn = KNeighborsClassifier(n_neighbors=3).fit(X_tr, y_tr)
 
-    knn = KNeighborsClassifier(n_neighbors=3)
-    knn.fit(X_train, y_train)
+    last = nums.iloc[-1]
+    last_feat = [[int(last[i]) for i in range(4)] +
+                 [sum(int(d)>=5 for d in last), sum(int(d)%2==0 for d in last)]]
 
-    last = numbers.iloc[-1]
-    last_feat = [[
-        int(last[0]), int(last[1]), int(last[2]), int(last[3]),
-        sum(1 for d in last if int(d) >= 5),
-        sum(1 for d in last if int(d) % 2 == 0)
-    ]]
+    st.info(f"📌 Last {prize_name}: **{last}**")
+    st.success(f"🔮 RF Prediction: **{le.inverse_transform(rf.predict(last_feat))[0]}**")
+    st.success(f"🔮 KNN Prediction: **{le.inverse_transform(knn.predict(last_feat))[0]}**")
 
-    rf_pred = le.inverse_transform(rf.predict(last_feat))[0]
-    knn_pred = le.inverse_transform(knn.predict(last_feat))[0]
-
-    st.info(f"📌 Last {prize_name} number: **{last}**")
-    st.success(f"🔮 Random Forest Prediction: **{rf_pred}**")
-    st.success(f"🔮 KNN Prediction: **{knn_pred}**")
-
+# ╭───────────────────────────────╮
+# |         LAUNCH APP            |
+# ╰───────────────────────────────╯
 if __name__ == "__main__":
     run_setAnalysis()
