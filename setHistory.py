@@ -168,6 +168,7 @@ def run_Scraping(numberList, genPermutation):
                 'Frequency': 'sum',
                 'From Latest DrawNo': 'min'
             })
+            FreqAll = FreqAll.sort_values(by='Frequency', ascending=False)
             st.dataframe(FreqAll)
             tmp_download_link = download_link(FreqAll, '4D_Data.csv', '** ⬇️ Download as CSV file **')
             st.markdown(tmp_download_link, unsafe_allow_html=True)
