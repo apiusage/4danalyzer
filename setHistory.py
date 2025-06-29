@@ -155,10 +155,9 @@ def run_Scraping(numberList, genPermutation):
                 with st.spinner("Fetching 'From Latest DrawNo' values..."):
                     freq_df = ResultsAll['Digit'].value_counts().reset_index()
                     freq_df.columns = ['Digit', 'Frequency']
-                    if genPermutation:
-                        freq_df['From Latest DrawNo'] = freq_df['Digit'].astype(object).apply(lambda x: get_from_latest_drawno(x, "no"))
-                    else:
-                        freq_df['From Latest DrawNo'] = freq_df['Digit'].astype(object).apply(lambda x: get_from_latest_drawno(x, "yes"))
+                    perm = "no" if genPermutation else "yes"
+                    freq_df['From Latest DrawNo'] = freq_df['Digit'].apply(
+                        lambda x: get_from_latest_drawno(str(x), perm))
 
                     FreqAll = pd.concat([FreqAll, freq_df], ignore_index=True)
 
