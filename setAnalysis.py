@@ -34,7 +34,7 @@ def run_setAnalysis():
     out1, out2 = get_2d()
     st.write("**2D:**", out1, out2)
 
-    predict_4d_digit_sums_xgboost()
+    # predict_4d_digit_sums_xgboost()
 
     # load & clean CSV
     url = "https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv"
