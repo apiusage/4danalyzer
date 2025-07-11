@@ -4,6 +4,8 @@ import plotly.express as px
 from collections import Counter
 import requests
 # ML imports
+import xgboost as xgb
+from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelEncoder
@@ -31,6 +33,8 @@ def run_setAnalysis():
     # quick 2-D numbers
     out1, out2 = get_2d()
     st.write("**2D:**", out1, out2)
+
+    predict_4d_digit_sums_xgboost()
 
     # load & clean CSV
     url = "https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv"
@@ -284,6 +288,42 @@ def predict_next_number(df, prize_name):
     st.info(f"📌 Last {prize_name}: **{last}**")
     st.success(f"🔮 RF Prediction: **{le.inverse_transform(rf.predict(last_feat))[0]}**")
     st.success(f"🔮 KNN Prediction: **{le.inverse_transform(knn.predict(last_feat))[0]}**")
+
+
+def predict_4d_digit_sums_xgboost():
+    df = pd.read_csv("https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv")
+
+    digit_sum = lambda n: sum(map(int, str(n).zfill(4)))
+    entries = [{'date': row['DrawDate'], 'digit_sum': digit_sum(row[col])}
+               for _, row in df.iterrows() for col in ['1st', '2nd', '3rd'] if str(row[col]).isdigit()]
+
+    data = pd.DataFrame(entries)
+    data['date'] = pd.to_datetime(data['date'], errors='coerce')
+    data.dropna(subset=['date'], inplace=True)
+    data[['year', 'month', 'day', 'weekday']] = data['date'].apply(lambda d: pd.Series([d.year, d.month, d.day, d.weekday()]))
+
+    X = data[['year', 'month', 'day', 'weekday']]
+    y = data['digit_sum']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    model = xgb.XGBClassifier(objective='multi:softprob', num_class=37, eval_metric='mlogloss', use_label_encoder=False)
+    model.fit(X_train, y_train)
+    st.success(f"🏆 Top 5 Predicted Digit Sums - Accuracy: {accuracy_score(y_test, model.predict(X_test)) * 100:.2f}%")
+
+    latest = data.iloc[-1]
+    next_inp = pd.DataFrame([{
+        'year': latest.year,
+        'month': latest.month,
+        'day': (latest.day % 28) + 1,
+        'weekday': (latest.weekday + 1) % 7
+    }])
+
+    probs = model.predict_proba(next_inp)[0]
+    top5 = sorted(enumerate(probs), key=lambda x: -x[1])[:5]
+
+    for ds, p in top5:
+        st.write(f"**Digit Sum:** {ds:2} ({p*100:.2f}%)")
+
 
 # ╭───────────────────────────────╮
 # |         LAUNCH APP            |

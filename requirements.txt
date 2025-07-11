@@ -12,3 +12,4 @@ XlsxWriter
 st-copy-to-clipboard
 scikit-learn
 cloudscraper
+xgboost
