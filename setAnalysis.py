@@ -3,6 +3,10 @@ import pandas as pd
 import plotly.express as px
 from collections import Counter
 import requests
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from bs4 import BeautifulSoup
+import re, time
 # ML imports
 import xgboost as xgb
 from sklearn.metrics import accuracy_score
@@ -28,8 +32,6 @@ TREND_DAYS = {"📅 2 Months": 60, "📅 6 Months": 180,
 # |      MAIN STREAMLIT APP       |
 # ╰───────────────────────────────╯
 def run_setAnalysis():
-    st.title("🎲 Singapore Pools 4D Analyzer")
-
     # quick 2-D numbers
     out1, out2 = get_2d()
     st.write("**2D:**", out1, out2)
@@ -51,6 +53,8 @@ def run_setAnalysis():
         with st.expander(f"🎯 {prize} Prize Analysis"):
             prize_digit_breakdown(df, prize)
             analyze_prize(df, prize)
+
+    transformationMethod()
 
 # ╭───────────────────────────────╮
 # |      DATA FETCH HELPERS       |
@@ -324,6 +328,32 @@ def predict_4d_digit_sums_xgboost():
     for ds, p in top5:
         st.write(f"**Digit Sum:** {ds:2} ({p*100:.2f}%)")
 
+def transformationMethod():
+    opts=Options(); opts.add_argument('--headless')
+    d=webdriver.Chrome(options=opts)
+    d.get("https://www.singaporepools.com.sg/en/product/pages/4d_results.aspx")
+    time.sleep(3)
+    s=BeautifulSoup(d.page_source,'html.parser'); d.quit()
+
+    f=s.select_one('ul.ulDraws > li')
+    A=str(9999 - int(f.find('td', class_='tdFirstPrize').text.strip())).zfill(4).translate(str.maketrans("0123456789","5678901234"))
+    B=re.search(r'\d+', f.find('th', class_='drawNumber').text).group()[-3:].zfill(4)
+    C=re.search(r'\b0?(\d{1,2})\b', next(filter(lambda x:"am" in x.text or "pm" in x.text, s.select('div.col-md-9 > div'))).text).group(1).zfill(2)
+    Ai,Bi,Ci=map(int,[A,B,C])
+
+    R=[str((Ai+Bi+Ci)%10000).zfill(4), str((Ai+Bi-Ci)%10000).zfill(4), str((Ai-Bi-Ci)%10000).zfill(4), str((Ai-Bi+Ci)%10000).zfill(4)]
+    p=[int(f.find('td', class_=f'td{pos}Prize').text.strip()) for pos in ['First','Second','Third']]
+    hist=[str((x+1234)%10000).zfill(4) for x in p]
+    zero8782 = [str(round(x*0.8782)).zfill(4) for x in p]
+
+    st.title("🔢 4D Transformation + 0.8782 Calculation")
+    st.markdown(f"A:`{A}` B:`{B}` C:`{C}`")
+    with st.expander("🎲 Transformation Results", True):
+        [st.markdown(f"**{i}.** `{r}`") for i,r in enumerate(R,1)]
+    with st.expander("🎲 Historical Method Results", True):
+        [st.markdown(f"**{i}.** `{r}`") for i,r in enumerate(hist,1)]
+    with st.expander("🎲 0.8782 Calculation (1st, 2nd, 3rd Prize)", True):
+        [st.markdown(f"**{pos} Prize:** `{val}`") for pos,val in zip(['1st','2nd','3rd'], zero8782)]
 
 # ╭───────────────────────────────╮
 # |         LAUNCH APP            |
