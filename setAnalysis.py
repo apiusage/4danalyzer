@@ -347,7 +347,6 @@ def transformationMethod():
     hist=[str((x+1234)%10000).zfill(4) for x in p]
     zero8782 = [str(round(x*0.8782)).zfill(4) for x in p]
 
-    st.title("🔢 4D Transformation + 0.8782 Calculation")
     st.markdown(f"A:`{A}` B:`{B}` C:`{C}`")
     with st.expander("🎲 Transformation Results", True):
         [st.markdown(f"**{i}.** `{r}`") for i,r in enumerate(R,1)]
