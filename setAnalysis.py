@@ -328,6 +328,7 @@ def predict_4d_digit_sums_xgboost():
     for ds, p in top5:
         st.write(f"**Digit Sum:** {ds:2} ({p*100:.2f}%)")
 
+# https://sgonlinecasino.org/4d-prediction-singapore/
 def transformationMethod():
     opts=Options(); opts.add_argument('--headless')
     d=webdriver.Chrome(options=opts)
