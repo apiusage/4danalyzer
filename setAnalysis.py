@@ -32,12 +32,6 @@ TREND_DAYS = {"📅 2 Months": 60, "📅 6 Months": 180,
 # |      MAIN STREAMLIT APP       |
 # ╰───────────────────────────────╯
 def run_setAnalysis():
-    # quick 2-D numbers
-    out1, out2 = get_2d()
-    st.write("**2D:**", out1, out2)
-
-    # predict_4d_digit_sums_xgboost()
-
     # load & clean CSV
     url = "https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv"
     df = pd.read_csv(url).dropna(how='all')
@@ -54,6 +48,11 @@ def run_setAnalysis():
             prize_digit_breakdown(df, prize)
             analyze_prize(df, prize)
 
+    # predict_4d_digit_sums_xgboost()
+
+    # quick 2-D numbers
+    out1, out2 = get_2d()
+    st.write("**2D:**", out1, out2)
     transformationMethod()
 
 # ╭───────────────────────────────╮
@@ -347,7 +346,7 @@ def transformationMethod():
     hist=[str((x+1234)%10000).zfill(4) for x in p]
     zero8782 = [str(round(x*0.8782)).zfill(4) for x in p]
 
-    st.markdown(f"A:`{A}` B:`{B}` C:`{C}`")
+    # st.markdown(f"A:`{A}` B:`{B}` C:`{C}`")
     with st.expander("🎲 Transformation Results", True):
         [st.markdown(f"**{i}.** `{r}`") for i,r in enumerate(R,1)]
     with st.expander("🎲 Historical Method Results", True):
