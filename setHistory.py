@@ -10,6 +10,7 @@ import itertools
 import xlsxwriter
 from st_copy_to_clipboard import st_copy_to_clipboard
 from scrape4D2U import get_from_latest_drawno
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def run_setHistory():
     numberList = st.text_area("Enter direct / set numbers: ", height=150)
@@ -152,13 +153,26 @@ def run_Scraping(numberList, genPermutation):
                 if not ResultsAll.empty:
                     display_year_month_summary(ResultsAll)
 
-                with st.spinner("Fetching 'From Latest DrawNo' values..."):
+                with st.spinner("🚀 Fetching 'From Latest DrawNo' values..."):
+                    # Count digit frequencies
                     freq_df = ResultsAll['Digit'].value_counts().reset_index()
                     freq_df.columns = ['Digit', 'Frequency']
                     perm = "no" if genPermutation else "yes"
-                    freq_df['From Latest DrawNo'] = freq_df['Digit'].apply(
-                        lambda x: get_from_latest_drawno(str(x), perm))
 
+                    # Parallel fetch
+                    results = fetch_all_results(freq_df['Digit'], perm)
+                    results_df = pd.DataFrame(results)
+
+                    # Merge with frequencies
+                    freq_df = freq_df.merge(results_df, left_on="Digit", right_on="digit").drop(columns=["digit"])
+
+                    # Make URLs clickable
+                    freq_df['url'] = freq_df['url'].apply(lambda x: f'<a href="{x}" target="_blank">link</a>')
+
+                    # Display
+                    st.write(freq_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+                    # Append to master dataframe
                     FreqAll = pd.concat([FreqAll, freq_df], ignore_index=True)
 
         # Group by Digit to remove duplicates
@@ -177,6 +191,16 @@ def run_Scraping(numberList, genPermutation):
     except Exception as e:
         st.error(f"Error: {str(e)}")
 
+# -------------------------
+# Parallel Fetcher
+# -------------------------
+def fetch_all_results(digits, perm, workers=20):
+    results = []
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(get_from_latest_drawno, str(d), perm): d for d in digits}
+        for future in as_completed(futures):
+            results.append(future.result())
+    return results
 
 def filterList(numberList):
     numberClean = []
