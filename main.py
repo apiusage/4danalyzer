@@ -4,16 +4,6 @@ from setHistory import *
 from streamlit_option_menu import option_menu
 from winningCalculator import *
 
-# Hide Streamlit branding
-hide_streamlit_style = """
-    <style>
-    #MainMenu {visibility: hidden;} /* Hide hamburger menu */
-    footer {visibility: hidden;}    /* Hide footer */
-    header {visibility: hidden;}    /* Hide header */
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
 img = Image.open("logo.png")
 PAGE_CONFIG = {
     "page_title": "4D Analyzer",
@@ -28,7 +18,6 @@ LOGO_BANNER = """
     <h1 style="color:white;text-align:center;"> 4D Analyzer </h1>
     </div>
     """
-
 
 def main():
     choice = optionMenu()
@@ -57,7 +46,6 @@ def main():
                  the agreement with any applicable local laws.")
         st.balloons()
 
-
 def optionMenu():
     option = option_menu("4D Analyzer",
                          ["Set History", "In-Depth Analysis", "Winning Calculator", "About"],
@@ -72,7 +60,6 @@ def optionMenu():
                          }
                          )
     return option
-
 
 if __name__ == '__main__':
     main()
