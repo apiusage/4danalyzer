@@ -1,89 +1,78 @@
 from PIL import Image
-from content import *
+from setAnalysis import run_setAnalysis
+from setHistory import *
 from streamlit_option_menu import option_menu
+from winningCalculator import *
 
-# Convert PNG to JPEG properly
-img = Image.open("images/bitcoin.png").convert("RGB")
-img.save("images/bitcoin.jpeg")
+# Hide Streamlit branding
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;} /* Hide hamburger menu */
+    footer {visibility: hidden;}    /* Hide footer */
+    header {visibility: hidden;}    /* Hide header */
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
+img = Image.open("logo.png")
 PAGE_CONFIG = {
-    "page_title": "Crypto Analyzer",
+    "page_title": "4D Analyzer",
     "page_icon": img,
-    "layout": "wide",
-    "initial_sidebar_state": "expanded",
+    "layout": "centered",
+    "initial_sidebar_state": "expanded"
 }
 st.set_page_config(**PAGE_CONFIG)
 
-# Inject custom CSS for blending
-st.markdown("""
-    <style>
-    .logo-banner {
-        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-        padding: 15px;
-        border-radius: 15px;
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.4);
-        text-align: center;
-        margin-bottom: 0px;
-    }
-    .logo-banner h1 {
-        color: #ffffff;
-        font-family: 'Trebuchet MS', sans-serif;
-        font-size: 2.2em;
-        letter-spacing: 2px;
-        text-shadow: 0 0 8px rgba(0,255,200,0.7),
-                     0 0 20px rgba(0,255,200,0.5);
-        margin: 0;
-    }
-    /* Style option menu to blend with banner */
-    .nav.nav-pills {
-        justify-content: center;
-        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-        border-radius: 0 0 15px 15px;
-        padding: 5px 0;
-        margin-top: -5px;
-    }
-    .nav-link {
-        color: #ddd !important;
-        font-size: 18px;
-        margin: 0 10px;
-    }
-    .nav-link.active {
-        background-color: #00ffc6 !important;
-        color: black !important;
-        border-radius: 8px;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 LOGO_BANNER = """
-    <div class="logo-banner">
-        <h1>🚀 <span style="color:#00ffc6;">Crypto Analyzer</span> 📊</h1>
+    <div style="background-color:#6a0575;padding:10px;border-radius:10px">
+    <h1 style="color:white;text-align:center;"> 4D Analyzer </h1>
     </div>
-"""
+    """
+
 
 def main():
-    # Show logo banner
-    st.markdown(LOGO_BANNER, unsafe_allow_html=True)
+    choice = optionMenu()
 
-    # Show blended menu
-    selected = option_menu(
-        menu_title=None,
-        options=["Home", "Coin Analyzer"],
-        icons=['house', 'reception-4'],
-        menu_icon="cast",
-        default_index=0,
-        orientation="horizontal"
-    )
+    if choice == "Set History":
+         run_setHistory()
+    elif choice == "In-Depth Analysis":
+        run_setAnalysis()
+    elif choice == "Winning Calculator":
+        run_WinningCalculator()
+    else:
+        st.info("__About__")
+        st.write("A web application to analyze past 4D winning numbers.")
+        st.info("__Technologies Utilized__")
+        st.write("Python, Streamlit, BeautifulSoup, Pandas, Requests")
+        st.info("__Responsible Gambling__")
+        st.write("__We are not responsible for any of your losses.__")
+        st.write("Please leave the website if you are under 18 years old.")
+        st.info("__Legal__")
+        st.write("You are responsible for any abuse or misuse of this tool.")
+        st.info("__Limitations__")
+        st.write("We will not be held accountable for any damages that will \
+                 arise with the use of this 4D analysis tool.")
+        st.info("__Terms__")
+        st.write("By accessing this website, you are responsible for \
+                 the agreement with any applicable local laws.")
+        st.balloons()
 
-    # Content area
-    if selected == "Home":
-        getfng()
-        getsubcontent()
-        get_footer_data()
-        sticky_scroll_to_top()
-    elif selected == "Coin Analyzer":
-        selected_coins = get_coin_table()
-        getcontent(selected_coins)
 
-if __name__ == "__main__":
+def optionMenu():
+    option = option_menu("4D Analyzer",
+                         ["Set History", "In-Depth Analysis", "Winning Calculator", "About"],
+                         icons=['house-heart-fill', 'graph-up', 'calculator', 'question-circle'],
+                         orientation="horizontal", menu_icon="dice-4-fill", default_index=0,
+                         styles={
+                             "container": {"padding": "5!important", "background-color": "#fafafa"},
+                             "icon": {"color": "orange", "font-size": "16px"},
+                             "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px",
+                                          "--hover-color": "#eee"},
+                             "nav-link-selected": {"background-color": "#02ab21"},
+                         }
+                         )
+    return option
+
+
+if __name__ == '__main__':
     main()
