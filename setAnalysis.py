@@ -292,83 +292,85 @@ def predict_next_number(df, prize_name):
     st.success(f"🔮 RF Prediction: **{le.inverse_transform(rf.predict(last_feat))[0]}**")
     st.success(f"🔮 KNN Prediction: **{le.inverse_transform(knn.predict(last_feat))[0]}**")
 
-# Model predict the next digit sum, regardless of whether it’s from 1st, 2nd, or 3rd prize
+
+# ----------------------------
+# 1. Load data with caching
+# ----------------------------
+@st.cache_data(ttl=3600)  # cache for 1 hour
+def load_4d_data(url="https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv"):
+    df = pd.read_csv(url)
+    return df
+
+
+# ----------------------------
+# 2. Train model with caching
+# ----------------------------
+@st.cache_data(ttl=3600)
+def train_xgb_model(data, n_lags=5):
+    # Create lag features
+    for lag in range(1, n_lags + 1):
+        data[f'lag_{lag}'] = data['digit_sum'].shift(lag)
+    data = data.dropna()
+    X = data[[f'lag_{lag}' for lag in range(1, n_lags + 1)]]
+    y = data['digit_sum']
+
+    # Train/test split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+
+    model = xgb.XGBClassifier(
+        objective='multi:softprob',
+        num_class=37,
+        eval_metric='mlogloss',
+        use_label_encoder=False,
+        n_estimators=100,
+        max_depth=3,
+        learning_rate=0.1,
+        random_state=42,
+        verbosity=0
+    )
+    model.fit(X_train, y_train)
+
+    acc = accuracy_score(y_test, model.predict(X_test))
+    return model, X, acc
+
+
+# ----------------------------
+# 3. Prediction function
+# ----------------------------
 def predict_4d_digit_sums_xgboost():
     try:
         st.markdown("## 🎯 4D Digit Sum Prediction Using XGBoost")
 
-        # ----------------------------
-        # 1. Load Data
-        # ----------------------------
-        df = pd.read_csv(
-            "https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv"
-        )
+        # Load CSV
+        df = load_4d_data()
 
-        # ----------------------------
-        # 2. Prepare Data for Model
-        # ----------------------------
-        digit_sum = lambda n: sum(map(int, str(n).zfill(4)))
-        entries = [
-            {'date': row['DrawDate'], 'prize': col, 'digit_sum': digit_sum(row[col])}
-            for _, row in df.iterrows()
-            for col in ['1st', '2nd', '3rd']
-            if str(row[col]).isdigit()
-        ]
-
-        data = pd.DataFrame(entries)
-        data['date'] = pd.to_datetime(data['date'], errors='coerce')
+        # Flatten all prizes (vectorized)
+        digit_cols = ['1st', '2nd', '3rd']
+        data = df.melt(id_vars=['DrawDate'], value_vars=digit_cols,
+                       var_name='prize', value_name='number')
+        data = data[data['number'].astype(str).str.isdigit()]
+        data['digit_sum'] = data['number'].astype(str).str.zfill(4).apply(lambda x: sum(map(int, x)))
+        data['date'] = pd.to_datetime(data['DrawDate'], errors='coerce')
         data.sort_values('date', inplace=True)
         data.reset_index(drop=True, inplace=True)
 
-        # ----------------------------
-        # 3. Create Lag Features
-        # ----------------------------
-        N_LAGS = 5
-        for lag in range(1, N_LAGS + 1):
-            data[f'lag_{lag}'] = data['digit_sum'].shift(lag)
-        data.dropna(inplace=True)
-        feature_cols = [f'lag_{lag}' for lag in range(1, N_LAGS + 1)]
-
-        X = data[feature_cols]
-        y = data['digit_sum']
-
-        # ----------------------------
-        # 4. Train/Test Split & Model
-        # ----------------------------
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
-        model = xgb.XGBClassifier(
-            objective='multi:softprob',
-            num_class=37,
-            eval_metric='mlogloss',
-            use_label_encoder=False,
-            n_estimators=200,
-            max_depth=3,
-            learning_rate=0.1,
-            random_state=42
-        )
-        model.fit(X_train, y_train)
-
-        # ----------------------------
-        # 5. Test Accuracy
-        # ----------------------------
-        acc = accuracy_score(y_test, model.predict(X_test))
+        # Train model (cached)
+        model, X, acc = train_xgb_model(data.copy(), n_lags=5)
         st.success(f"🏆 Test Accuracy: {acc * 100:.2f}%")
 
-        # ----------------------------
-        # 6. Predict Next Digit Sum
-        # ----------------------------
-        latest_lags = data.iloc[-1][feature_cols].values.reshape(1, -1)
+        # Predict next
+        latest_lags = X.iloc[-1].values.reshape(1, -1)
         probs = model.predict_proba(latest_lags)[0]
 
         top5 = sorted(enumerate(probs), key=lambda x: -x[1])[:5]
         top5_df = pd.DataFrame(top5, columns=['Digit Sum', 'Probability'])
         top5_df['Probability'] = top5_df['Probability'] * 100
-        top5_df = top5_df.sort_values('Digit Sum')  # sort for consistent x-axis
+        top5_df = top5_df.sort_values('Digit Sum')
 
         st.markdown("### 🔮 Top 5 Predicted Digit Sums for Next Draw")
         st.table(top5_df.style.format({'Probability': '{:.2f}%'}))
 
-        # Bar chart with no gaps
+        # Bar chart
         fig = px.bar(
             top5_df,
             x='Digit Sum',
@@ -378,21 +380,17 @@ def predict_4d_digit_sums_xgboost():
             color_continuous_scale='Viridis'
         )
         fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside', cliponaxis=False)
-        fig.update_layout(
-            yaxis=dict(range=[0, top5_df['Probability'].max() * 1.2]),
-            xaxis=dict(type='category')
-        )
+        fig.update_layout(yaxis=dict(range=[0, top5_df['Probability'].max() * 1.2]), xaxis=dict(type='category'))
         st.plotly_chart(fig, use_container_width=True)
 
         # ----------------------------
-        # 7. Last 50 Draws Table
+        # Last 50 draws table
         # ----------------------------
         st.markdown("### 📊 Last 50 Draws with All Prizes & Digit Sums")
-
         wide_df = df[['DrawDate', '1st', '2nd', '3rd']].copy()
 
         # Pad numbers to 4 digits
-        for col in ['1st', '2nd', '3rd']:
+        for col in digit_cols:
             wide_df[col] = wide_df[col].apply(lambda x: str(x).zfill(4) if str(x).isdigit() else x)
 
         # Compute digit sums
@@ -411,13 +409,11 @@ def predict_4d_digit_sums_xgboost():
                 'sum_1st': 'DS (1st)',
                 'sum_2nd': 'DS (2nd)',
                 'sum_3rd': 'DS (3rd)'
-            })
-            .reset_index(drop=True)
+            }).reset_index(drop=True)
         )
 
     except Exception as e:
         st.error(f"❌ Error occurred: {e}")
-
 
 # https://sgonlinecasino.org/4d-prediction-singapore/
 def transformationMethod():
