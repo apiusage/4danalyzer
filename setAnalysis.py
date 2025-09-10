@@ -49,7 +49,7 @@ def run_setAnalysis():
             prize_digit_breakdown(df, prize)
             analyze_prize(df, prize)
 
-    predict_4d_digit_sums_xgboost()
+    digitSumTable()
 
     # quick 2-D numbers
     out1, out2 = get_2d()
@@ -294,7 +294,7 @@ def predict_next_number(df, prize_name):
     st.success(f"🔮 KNN Prediction: **{le.inverse_transform(knn.predict(last_feat))[0]}**")
 
 # ----------------------------
-# 1. Load 4D data with caching
+# Load 4D data with caching
 # ----------------------------
 @st.cache_data(ttl=3600)  # cache for 1 hour
 def load_4d_data(url="https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv"):
@@ -302,7 +302,7 @@ def load_4d_data(url="https://raw.githubusercontent.com/apiusage/sg-4d-json/refs
     return df
 
 # ----------------------------
-# 2. Train XGB model
+# Train XGB model
 # ----------------------------
 def train_xgb_model(data, n_lags=5):
     for lag in range(1, n_lags + 1):
@@ -333,7 +333,7 @@ def train_xgb_model(data, n_lags=5):
     return model, X, acc
 
 # ----------------------------
-# 3. Safe training with timeout
+# Safe training with timeout
 # ----------------------------
 def safe_train_xgb_model(data, n_lags=5, timeout=60):
     try:
@@ -347,17 +347,41 @@ def safe_train_xgb_model(data, n_lags=5, timeout=60):
         st.warning(f"⚠️ Model training failed: {e}")
         return None, None, None
 
-# ----------------------------
-# 4. Prediction function
-# ----------------------------
-def predict_4d_digit_sums_xgboost():
-    st.markdown("## 🎯 4D Digit Sum Prediction Using XGBoost")
-
+def digitSumTable():
     try:
         df = load_4d_data()
     except Exception as e:
         st.error(f"❌ Failed to load 4D data: {e}")
         return
+
+    # Last 50 draws table
+    st.markdown("### 📊 Last 50 Draws with All Prizes & Digit Sums")
+    wide_df = df[['DrawDate', '1st', '2nd', '3rd']].copy()
+    for col in ['1st', '2nd', '3rd']:
+        wide_df[col] = wide_df[col].apply(lambda x: str(x).zfill(4) if str(x).isdigit() else x)
+    wide_df['sum_1st'] = wide_df['1st'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
+    wide_df['sum_2nd'] = wide_df['2nd'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
+    wide_df['sum_3rd'] = wide_df['3rd'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
+
+    st.dataframe(
+        wide_df[['DrawDate', '1st', '2nd', '3rd', 'sum_1st', 'sum_2nd', 'sum_3rd']]
+        .tail(50)
+        .iloc[::-1]  # flip so latest draw is first
+        .rename(columns={
+            'DrawDate': 'Date',
+            '1st': '1st Prize',
+            '2nd': '2nd Prize',
+            '3rd': '3rd Prize',
+            'sum_1st': 'DS (1st)',
+            'sum_2nd': 'DS (2nd)',
+            'sum_3rd': 'DS (3rd)'
+        })
+        .reset_index(drop=True)
+    )
+    # predict_4d_digit_sums_xgboost(df)
+
+def predict_4d_digit_sums_xgboost(df):
+    st.markdown("## 🎯 4D Digit Sum Prediction Using XGBoost")
 
     # Flatten all prizes
     digit_cols = ['1st', '2nd', '3rd']
@@ -404,30 +428,7 @@ def predict_4d_digit_sums_xgboost():
     else:
         st.info("ℹ️ Skipping ML prediction due to timeout or error. Only showing last 50 draws.")
 
-    # Last 50 draws table
-    st.markdown("### 📊 Last 50 Draws with All Prizes & Digit Sums")
-    wide_df = df[['DrawDate', '1st', '2nd', '3rd']].copy()
-    for col in ['1st', '2nd', '3rd']:
-        wide_df[col] = wide_df[col].apply(lambda x: str(x).zfill(4) if str(x).isdigit() else x)
-    wide_df['sum_1st'] = wide_df['1st'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
-    wide_df['sum_2nd'] = wide_df['2nd'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
-    wide_df['sum_3rd'] = wide_df['3rd'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
 
-    st.dataframe(
-        wide_df[['DrawDate', '1st', '2nd', '3rd', 'sum_1st', 'sum_2nd', 'sum_3rd']]
-        .tail(50)
-        .iloc[::-1]  # flip so latest draw is first
-        .rename(columns={
-            'DrawDate': 'Date',
-            '1st': '1st Prize',
-            '2nd': '2nd Prize',
-            '3rd': '3rd Prize',
-            'sum_1st': 'DS (1st)',
-            'sum_2nd': 'DS (2nd)',
-            'sum_3rd': 'DS (3rd)'
-        })
-        .reset_index(drop=True)
-    )
 
 # https://sgonlinecasino.org/4d-prediction-singapore/
 def transformationMethod():
