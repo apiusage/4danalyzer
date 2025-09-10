@@ -14,6 +14,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
+import concurrent.futures
 # ────────────────────────────────────────────────────────────────
 # 🔧 GLOBAL CONSTANTS
 # ────────────────────────────────────────────────────────────────
@@ -292,29 +293,28 @@ def predict_next_number(df, prize_name):
     st.success(f"🔮 RF Prediction: **{le.inverse_transform(rf.predict(last_feat))[0]}**")
     st.success(f"🔮 KNN Prediction: **{le.inverse_transform(knn.predict(last_feat))[0]}**")
 
-
 # ----------------------------
-# 1. Load data with caching
+# 1. Load 4D data with caching
 # ----------------------------
 @st.cache_data(ttl=3600)  # cache for 1 hour
 def load_4d_data(url="https://raw.githubusercontent.com/apiusage/sg-4d-json/refs/heads/main/4d_results.csv"):
     df = pd.read_csv(url)
     return df
 
-
 # ----------------------------
-# 2. Train model with caching
+# 2. Train XGB model
 # ----------------------------
-@st.cache_data(ttl=3600)
 def train_xgb_model(data, n_lags=5):
-    # Create lag features
     for lag in range(1, n_lags + 1):
         data[f'lag_{lag}'] = data['digit_sum'].shift(lag)
     data = data.dropna()
+
+    if data.shape[0] < 10:
+        raise ValueError("Not enough rows to train the model after creating lag features.")
+
     X = data[[f'lag_{lag}' for lag in range(1, n_lags + 1)]]
     y = data['digit_sum']
 
-    # Train/test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 
     model = xgb.XGBClassifier(
@@ -329,33 +329,52 @@ def train_xgb_model(data, n_lags=5):
         verbosity=0
     )
     model.fit(X_train, y_train)
-
     acc = accuracy_score(y_test, model.predict(X_test))
     return model, X, acc
 
+# ----------------------------
+# 3. Safe training with timeout
+# ----------------------------
+def safe_train_xgb_model(data, n_lags=5, timeout=60):
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(train_xgb_model, data, n_lags)
+            return future.result(timeout=timeout)
+    except concurrent.futures.TimeoutError:
+        st.warning(f"⚠️ Model training exceeded {timeout} seconds and was canceled.")
+        return None, None, None
+    except Exception as e:
+        st.warning(f"⚠️ Model training failed: {e}")
+        return None, None, None
 
 # ----------------------------
-# 3. Prediction function
+# 4. Prediction function
 # ----------------------------
 def predict_4d_digit_sums_xgboost():
+    st.markdown("## 🎯 4D Digit Sum Prediction Using XGBoost")
+
     try:
-        st.markdown("## 🎯 4D Digit Sum Prediction Using XGBoost")
-
-        # Load CSV
         df = load_4d_data()
+    except Exception as e:
+        st.error(f"❌ Failed to load 4D data: {e}")
+        return
 
-        # Flatten all prizes (vectorized)
-        digit_cols = ['1st', '2nd', '3rd']
-        data = df.melt(id_vars=['DrawDate'], value_vars=digit_cols,
-                       var_name='prize', value_name='number')
-        data = data[data['number'].astype(str).str.isdigit()]
-        data['digit_sum'] = data['number'].astype(str).str.zfill(4).apply(lambda x: sum(map(int, x)))
-        data['date'] = pd.to_datetime(data['DrawDate'], errors='coerce')
-        data.sort_values('date', inplace=True)
-        data.reset_index(drop=True, inplace=True)
+    # Flatten all prizes
+    digit_cols = ['1st', '2nd', '3rd']
+    data = df.melt(id_vars=['DrawDate'], value_vars=digit_cols, var_name='prize', value_name='number')
+    data = data[data['number'].astype(str).str.isdigit()]
+    data['digit_sum'] = data['number'].astype(str).str.zfill(4).apply(lambda x: sum(map(int, x)))
+    data['date'] = pd.to_datetime(data['DrawDate'], errors='coerce')
+    data.sort_values('date', inplace=True)
+    data.reset_index(drop=True, inplace=True)
 
-        # Train model (cached)
-        model, X, acc = train_xgb_model(data.copy(), n_lags=5)
+    # Determine lag size dynamically
+    n_lags = min(5, max(1, len(data) // 2))
+
+    # Train model safely
+    model, X, acc = safe_train_xgb_model(data.copy(), n_lags=n_lags, timeout=30)
+
+    if model is not None:
         st.success(f"🏆 Test Accuracy: {acc * 100:.2f}%")
 
         # Predict next
@@ -364,8 +383,8 @@ def predict_4d_digit_sums_xgboost():
 
         top5 = sorted(enumerate(probs), key=lambda x: -x[1])[:5]
         top5_df = pd.DataFrame(top5, columns=['Digit Sum', 'Probability'])
-        top5_df['Probability'] = top5_df['Probability'] * 100
-        top5_df = top5_df.sort_values('Digit Sum')
+        top5_df['Probability'] *= 100
+        top5_df = top5_df.sort_values('Probability', ascending=False)
 
         st.markdown("### 🔮 Top 5 Predicted Digit Sums for Next Draw")
         st.table(top5_df.style.format({'Probability': '{:.2f}%'}))
@@ -382,38 +401,33 @@ def predict_4d_digit_sums_xgboost():
         fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside', cliponaxis=False)
         fig.update_layout(yaxis=dict(range=[0, top5_df['Probability'].max() * 1.2]), xaxis=dict(type='category'))
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("ℹ️ Skipping ML prediction due to timeout or error. Only showing last 50 draws.")
 
-        # ----------------------------
-        # Last 50 draws table
-        # ----------------------------
-        st.markdown("### 📊 Last 50 Draws with All Prizes & Digit Sums")
-        wide_df = df[['DrawDate', '1st', '2nd', '3rd']].copy()
+    # Last 50 draws table
+    st.markdown("### 📊 Last 50 Draws with All Prizes & Digit Sums")
+    wide_df = df[['DrawDate', '1st', '2nd', '3rd']].copy()
+    for col in ['1st', '2nd', '3rd']:
+        wide_df[col] = wide_df[col].apply(lambda x: str(x).zfill(4) if str(x).isdigit() else x)
+    wide_df['sum_1st'] = wide_df['1st'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
+    wide_df['sum_2nd'] = wide_df['2nd'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
+    wide_df['sum_3rd'] = wide_df['3rd'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
 
-        # Pad numbers to 4 digits
-        for col in digit_cols:
-            wide_df[col] = wide_df[col].apply(lambda x: str(x).zfill(4) if str(x).isdigit() else x)
-
-        # Compute digit sums
-        wide_df['sum_1st'] = wide_df['1st'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
-        wide_df['sum_2nd'] = wide_df['2nd'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
-        wide_df['sum_3rd'] = wide_df['3rd'].apply(lambda x: sum(map(int, str(x))) if str(x).isdigit() else None)
-
-        st.dataframe(
-            wide_df[['DrawDate', '1st', '2nd', '3rd', 'sum_1st', 'sum_2nd', 'sum_3rd']]
-            .tail(50)
-            .rename(columns={
-                'DrawDate': 'Date',
-                '1st': '1st Prize',
-                '2nd': '2nd Prize',
-                '3rd': '3rd Prize',
-                'sum_1st': 'DS (1st)',
-                'sum_2nd': 'DS (2nd)',
-                'sum_3rd': 'DS (3rd)'
-            }).reset_index(drop=True)
-        )
-
-    except Exception as e:
-        st.error(f"❌ Error occurred: {e}")
+    st.dataframe(
+        wide_df[['DrawDate', '1st', '2nd', '3rd', 'sum_1st', 'sum_2nd', 'sum_3rd']]
+        .tail(50)
+        .iloc[::-1]  # flip so latest draw is first
+        .rename(columns={
+            'DrawDate': 'Date',
+            '1st': '1st Prize',
+            '2nd': '2nd Prize',
+            '3rd': '3rd Prize',
+            'sum_1st': 'DS (1st)',
+            'sum_2nd': 'DS (2nd)',
+            'sum_3rd': 'DS (3rd)'
+        })
+        .reset_index(drop=True)
+    )
 
 # https://sgonlinecasino.org/4d-prediction-singapore/
 def transformationMethod():
