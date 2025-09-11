@@ -78,10 +78,13 @@ def runAccGen():
 
     def random_email(name_hint=None):
         if faker:
-            return faker.email()
-        name = (name_hint or "user") + str(random.randint(100,999))
-        domains = ["outlook.com","mailinator.com","gmail.com"]
-        return f"{name}@{random.choice(domains)}"
+            name = faker.user_name()
+            domains = ["outlook.com", "gmail.com", "yahoo.com", "hotmail.com"]
+            return f"{name}{random.randint(100, 999)}@{random.choice(domains)}"
+        else:
+            name = (name_hint or "user") + str(random.randint(100, 999))
+            domains = ["outlook.com", "mailinator.com", "gmail.com"]
+            return f"{name}@{random.choice(domains)}"
 
     def random_name():
         if faker:
