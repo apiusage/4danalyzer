@@ -13,16 +13,19 @@ from selenium.webdriver.chrome.service import Service
 # Optional: nicer fake data; fallback if Faker not installed
 try:
     from faker import Faker
+
     faker = Faker()
 except Exception:
     faker = None
 
 # ----- CONFIG -----
 PAGE_URL = "https://4dinsingapore.com/amember/signup"
-HEADLESS = False
+HEADLESS = True  # must be True for Streamlit Cloud
 IMPLICIT_WAIT = 6
 RANDOMIZE_COUNTRY = True
 DEFAULT_COUNTRY_CODE = "SG"
+
+
 # -------------------
 
 def random_username(min_length=6, max_length=8):
@@ -40,19 +43,22 @@ def random_username(min_length=6, max_length=8):
     digits = ''.join(random.choice(string.digits) for _ in range(random.choice([2, 3])))
     return base + digits
 
+
 def random_email(name_hint=None):
     if faker:
         return faker.email()
-    name = (name_hint or "user") + str(random.randint(100,999))
+    name = (name_hint or "user") + str(random.randint(100, 999))
     domains = ["outlook.com", "mailinator.com", "gmail.com"]
     return f"{name}@{random.choice(domains)}"
+
 
 def random_name():
     if faker:
         return faker.name()
-    first = random.choice(["Alex","Sam","Jamie","Taylor","Chris","Jordan","Morgan"])
-    last = random.choice(["Lee","Tan","Ng","Lim","Wong","Smith","Chen"])
+    first = random.choice(["Alex", "Sam", "Jamie", "Taylor", "Chris", "Jordan", "Morgan"])
+    last = random.choice(["Lee", "Tan", "Ng", "Lim", "Wong", "Smith", "Chen"])
     return f"{first} {last}"
+
 
 def choose_country_value(select_elem, randomize=True, default_code="SG"):
     options = [opt.get_attribute("value") for opt in select_elem.options if opt.get_attribute("value")]
@@ -62,6 +68,7 @@ def choose_country_value(select_elem, randomize=True, default_code="SG"):
         return random.choice(options)
     return default_code if default_code in options else options[0]
 
+
 def copyable_text(label, text):
     copy_button(
         text,
@@ -70,11 +77,19 @@ def copyable_text(label, text):
         icon="st",
     )
 
+
 def run_script():
     options = webdriver.ChromeOptions()
-    if HEADLESS:
-        options.add_argument("--headless=new")
-    options.add_argument("--start-maximized")
+
+    # --- Required for Streamlit Cloud / headless environment ---
+    # options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--remote-allow-origins=*")  # fixes Chrome errors in cloud
+
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     driver.implicitly_wait(IMPLICIT_WAIT)
@@ -105,6 +120,7 @@ def run_script():
         driver.find_element(By.NAME, "login").send_keys(username)
         driver.find_element(By.NAME, "pass").send_keys(password)
 
+        # Select country
         try:
             select_el = Select(driver.find_element(By.ID, "f_country"))
             chosen_value = choose_country_value(select_el, randomize=RANDOMIZE_COUNTRY)
@@ -113,41 +129,37 @@ def run_script():
         except Exception:
             country_used = DEFAULT_COUNTRY_CODE
 
-        # Show credentials on Streamlit
+        # Show credentials in Streamlit
         st.subheader("Generated Credentials")
         st.write(f"**Name:** {full_name}")
         st.write(f"**Email:** {email}")
-        # Username row
+
         col1, col2 = st.columns([3, 1])
         with col1:
             st.write(f"**Username:** {username}")
         with col2:
             copyable_text("Username", username)
 
-        # Password row
         col1, col2 = st.columns([3, 1])
         with col1:
             st.write(f"**Password:** {password}")
         with col2:
             copyable_text("Password", password)
+
         st.write(f"**Country:** {country_used}")
+        st.markdown(
+            f'<a href="https://4dinsingapore.com/amember/member/index" target="_blank">Go to aMember Member Index</a>',
+            unsafe_allow_html=True
+        )
 
-        # Define the URL for the aMember member index page
-        member_index_url = "https://4dinsingapore.com/amember/member/index"
-
-        # Create a clickable link using Markdown with HTML
-        st.markdown(f'<a href="{member_index_url}" target="_blank">Go to aMember Member Index</a>',
-                    unsafe_allow_html=True)
-
-        # Click captcha checkbox
+        # reCAPTCHA warning
         try:
             recaptcha_iframe = wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[title='reCAPTCHA']"))
-            )
+                EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[title='reCAPTCHA']")))
             driver.switch_to.frame(recaptcha_iframe)
             checkbox = wait.until(EC.element_to_be_clickable((By.ID, "recaptcha-anchor")))
             checkbox.click()
-            st.info("Clicked reCAPTCHA checkbox. Please solve the challenge manually in the browser.")
+            st.info("Clicked reCAPTCHA checkbox. Please solve it manually in the browser.")
             time.sleep(15)
         except Exception as e:
             st.warning(f"Could not click reCAPTCHA automatically: {e}")
@@ -156,6 +168,7 @@ def run_script():
 
     finally:
         driver.quit()
+
 
 def runAccGen():
     # Compact, stylish title banner
@@ -190,6 +203,7 @@ def runAccGen():
 
     if st.button("Run Autofill"):
         run_script()
+
 
 # Run Streamlit app
 if __name__ == "__main__":
