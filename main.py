@@ -3,6 +3,7 @@ from setAnalysis import run_setAnalysis
 from setHistory import *
 from streamlit_option_menu import option_menu
 from winningCalculator import *
+from sg4daccgen import *
 
 img = Image.open("logo.png")
 PAGE_CONFIG = {
@@ -28,6 +29,8 @@ def main():
         run_setAnalysis()
     elif choice == "Winning Calculator":
         run_WinningCalculator()
+    elif choice == "4DinSG":
+        runAccGen()
     else:
         st.info("__About__")
         st.write("A web application to analyze past 4D winning numbers.")
@@ -48,8 +51,8 @@ def main():
 
 def optionMenu():
     option = option_menu("4D Analyzer",
-                         ["Set History", "In-Depth Analysis", "Winning Calculator", "About"],
-                         icons=['house-heart-fill', 'graph-up', 'calculator', 'question-circle'],
+                         ["Set History", "In-Depth Analysis", "Winning Calculator", "4DinSG", "About"],
+                         icons=['house-heart-fill', 'graph-up', 'calculator', 'bi bi-person-circle', 'question-circle'],
                          orientation="horizontal", menu_icon="dice-4-fill", default_index=0,
                          styles={
                              "container": {"padding": "5!important", "background-color": "#fafafa"},
