@@ -58,7 +58,7 @@ def choose_country(select_elem):
 # ---------------- BROWSER ----------------
 def run_browser():
     opts = webdriver.ChromeOptions()
-    opts.add_argument("--headless=new" if HEADLESS else "--start-maximized")
+    # opts.add_argument("--headless=new" if HEADLESS else "--start-maximized")
     opts.add_argument("--window-size=1920,1080")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-dev-shm-usage")
