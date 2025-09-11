@@ -48,15 +48,26 @@ def runAccGen():
 
     def run_browser():
         opts = webdriver.ChromeOptions()
-        opts.add_argument("--start-maximized" if not HEADLESS else "--headless=new")
+        opts.add_argument("--headless=new")  # Fully headless
+        opts.add_argument("--window-size=1920,1080")  # Ensure elements render correctly
         opts.add_experimental_option("detach", True)
-        opts.add_argument("--no-sandbox"); opts.add_argument("--disable-dev-shm-usage"); opts.add_argument("--disable-gpu"); opts.add_argument("--disable-extensions"); opts.add_argument("--remote-allow-origins=*")
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
-        driver.implicitly_wait(IMPLICIT_WAIT); st.session_state.driver = driver
-        driver.get(PAGE_URL); wait = WebDriverWait(driver, 12)
+        opts.add_argument("--no-sandbox")
+        opts.add_argument("--disable-dev-shm-usage")
+        opts.add_argument("--disable-gpu")
+        opts.add_argument("--disable-extensions")
+        opts.add_argument("--remote-allow-origins=*")
 
-        try: driver.find_element(By.ID, "product-3-3").click()
-        except: radios = driver.find_elements(By.CSS_SELECTOR, "input[type='radio'][name^='product_id_page-0']"); radios[0].click() if radios else None
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
+        driver.implicitly_wait(IMPLICIT_WAIT)
+        st.session_state.driver = driver
+        driver.get(PAGE_URL)
+        wait = WebDriverWait(driver, 12)
+
+        try:
+            driver.find_element(By.ID, "product-3-3").click()
+        except:
+            radios = driver.find_elements(By.CSS_SELECTOR, "input[type='radio'][name^='product_id_page-0']")
+            if radios: radios[0].click()
 
         full_name, username, email, password = rand_name(), rand_username(), rand_email(), "111111"
         driver.find_element(By.NAME, "_name").send_keys(full_name)
@@ -64,23 +75,46 @@ def runAccGen():
         driver.find_element(By.NAME, "login").send_keys(username)
         driver.find_element(By.NAME, "pass").send_keys(password)
 
-        try: select_el = Select(driver.find_element(By.ID, "f_country")); country_used = choose_country(select_el); select_el.select_by_value(country_used)
-        except: country_used = DEFAULT_COUNTRY_CODE
-
-        try: driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "iframe[title='reCAPTCHA']")); driver.find_element(By.ID,"recaptcha-anchor").click(); driver.switch_to.default_content()
-        except: pass
-
-        try: next_btn = driver.find_element(By.ID,"_qf_page-0_next-0"); next_btn.click() if next_btn.is_enabled() else None
-        except: st.info("Solve reCAPTCHA manually in Chrome before clicking 'Next'.")
+        try:
+            select_el = Select(driver.find_element(By.ID, "f_country"))
+            country_used = choose_country(select_el)
+            select_el.select_by_value(country_used)
+        except:
+            country_used = DEFAULT_COUNTRY_CODE
 
         try:
-            oto_div = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.CSS_SELECTOR,"div.am-body-content-content")))
-            oto_text = oto_div.text
-            if "This is a One Time Offer Deal that you never see anywhere!" in oto_text: st.success("✅ Signup successful! One Time Offer detected:")
-            else: st.warning("⚠️ Signup failed! One Time Offer content not found.")
-        except: st.error("❌ Signup failed! Failed to detect One Time Offer content.")
+            driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "iframe[title='reCAPTCHA']"))
+            driver.find_element(By.ID, "recaptcha-anchor").click()
+            driver.switch_to.default_content()
+        except:
+            pass
 
-        return {"full_name":full_name,"username":username,"email":email,"password":password,"country":country_used,"driver":driver}
+        try:
+            next_btn = driver.find_element(By.ID, "_qf_page-0_next-0")
+            if next_btn.is_enabled(): next_btn.click()
+        except:
+            st.info("Solve reCAPTCHA manually in Chrome before clicking 'Next'.")
+
+        try:
+            oto_div = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div.am-body-content-content"))
+            )
+            oto_text = oto_div.text
+            if "This is a One Time Offer Deal that you never see anywhere!" in oto_text:
+                st.success("✅ Signup successful! One Time Offer detected:")
+            else:
+                st.warning("⚠️ Signup failed! One Time Offer content not found.")
+        except:
+            st.error("❌ Signup failed! Failed to detect One Time Offer content.")
+
+        return {
+            "full_name": full_name,
+            "username": username,
+            "email": email,
+            "password": password,
+            "country": country_used,
+            "driver": driver
+        }
 
     if st.button("Generate Account") and st.session_state.driver is None:
         creds = run_browser()
