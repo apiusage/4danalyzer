@@ -1,208 +1,98 @@
-import random
-import string
-import streamlit as st
+import random, string, streamlit as st
 from st_copy import copy_button
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 
-# Optional Faker for nicer data
-try:
-    from faker import Faker
-    faker = Faker()
-except Exception:
-    faker = None
+try: from faker import Faker; faker = Faker()
+except: faker = None
 
-# ---------------- CONFIG ----------------
 PAGE_URL = "https://4dinsingapore.com/amember/signup"
-HEADLESS = False  # Keep Chrome visible
+HEADLESS = False
 IMPLICIT_WAIT = 6
 RANDOMIZE_COUNTRY = True
 DEFAULT_COUNTRY_CODE = "SG"
-# ----------------------------------------
 
 def copyable_text(label, text):
     copy_button(text, tooltip=f"Copy {label}", copied_label="Copied!", icon="st")
 
 def runAccGen():
-    """
-    Full Streamlit + Selenium account generator.
-    Call this function to launch the UI and handle account creation.
-    """
-    # ---------------- Streamlit UI Banner ----------------
-    st.markdown(
-        """
-        <div style="
-            background: linear-gradient(90deg,#5b6278,#464e5f);
-            padding:10px 15px;
-            border-radius:12px;
-            text-align:center;
-            box-shadow:0 3px 8px rgba(0,0,0,0.2);
-            margin-bottom:15px;
-        ">
-            <h1 style="
-                color:white;
-                font-family:Arial,sans-serif;
-                margin:0;
-                font-size:1.8em;
-                line-height:1.2;
-                text-shadow:1px 1px 2px rgba(0,0,0,0.3);
-            ">4DinSingapore Acc Gen</h1>
-            <p style="color:#d1d5db;margin:3px 0 0 0;font-size:0.95em;">
-            Auto-fill your aMember signup form</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <div style="background:linear-gradient(90deg,#5b6278,#464e5f);padding:10px 15px;border-radius:12px;text-align:center;box-shadow:0 3px 8px rgba(0,0,0,0.2);margin-bottom:15px;">
+        <h1 style="color:white;font-family:Arial,sans-serif;margin:0;font-size:1.8em;line-height:1.2;text-shadow:1px 1px 2px rgba(0,0,0,0.3)">4DinSingapore Acc Gen</h1>
+        <p style="color:#d1d5db;margin:3px 0 0 0;font-size:0.95em;">Auto-fill your aMember signup form</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Initialize session state for driver
-    if "driver" not in st.session_state:
-        st.session_state.driver = None
+    if "driver" not in st.session_state: st.session_state.driver = None
 
-    # ---------------- Helper functions ----------------
-    def random_username(min_length=6, max_length=8):
-        words = ["silver","monkey","dragon","shadow","forest","candle",
-                 "rocket","orange","tiger","purple","pencil","planet",
-                 "green","stone","magic","cloud","flame"]
-        base = faker.word() if faker else random.choice(words)
-        base = base.lower()
-        if len(base) < min_length:
-            base += "".join(random.choice(string.ascii_lowercase) for _ in range(min_length-len(base)))
-        if len(base) > max_length:
-            base = base[:max_length]
-        digits = "".join(random.choice(string.digits) for _ in range(random.choice([2,3])))
-        return base + digits
+    def rand_username(min_len=6,max_len=8):
+        base = (faker.word() if faker else random.choice(["silver","monkey","dragon","shadow","forest","candle","rocket","orange","tiger","purple","pencil","planet","green","stone","magic","cloud","flame"])).lower()
+        if len(base)<min_len: base += ''.join(random.choice(string.ascii_lowercase) for _ in range(min_len-len(base)))
+        if len(base)>max_len: base = base[:max_len]
+        return base + ''.join(random.choice(string.digits) for _ in range(random.choice([2,3])))
 
-    def random_email(name_hint=None):
-        if faker:
-            name = faker.user_name()
-            domains = ["outlook.com", "gmail.com", "yahoo.com", "hotmail.com"]
-            return f"{name}{random.randint(100, 999)}@{random.choice(domains)}"
-        else:
-            name = (name_hint or "user") + str(random.randint(100, 999))
-            domains = ["outlook.com", "mailinator.com", "gmail.com"]
-            return f"{name}@{random.choice(domains)}"
+    def rand_email(name_hint=None):
+        name = (faker.user_name() if faker else (name_hint or "user")) + str(random.randint(100,999))
+        return f"{name}@{random.choice(['outlook.com','gmail.com','yahoo.com','hotmail.com','mailinator.com'])}"
 
-    def random_name():
-        if faker:
-            return faker.name()
-        first = random.choice(["Alex","Sam","Jamie","Taylor","Chris","Jordan","Morgan"])
-        last = random.choice(["Lee","Tan","Ng","Lim","Wong","Smith","Chen"])
-        return f"{first} {last}"
+    def rand_name():
+        return faker.name() if faker else f"{random.choice(['Alex','Sam','Jamie','Taylor','Chris','Jordan','Morgan'])} {random.choice(['Lee','Tan','Ng','Lim','Wong','Smith','Chen'])}"
 
-    def choose_country_value(select_elem, randomize=True, default_code="SG"):
-        options = [opt.get_attribute("value") for opt in select_elem.options if opt.get_attribute("value")]
-        if not options:
-            return default_code
-        if randomize:
-            return random.choice(options)
-        return default_code if default_code in options else options[0]
+    def choose_country(select_elem):
+        opts = [o.get_attribute("value") for o in select_elem.options if o.get_attribute("value")]
+        return random.choice(opts) if RANDOMIZE_COUNTRY and opts else (DEFAULT_COUNTRY_CODE if DEFAULT_COUNTRY_CODE in opts else opts[0])
 
-    # ---------------- Selenium automation ----------------
     def run_browser():
-        options = webdriver.ChromeOptions()
-        if HEADLESS:
-            options.add_argument("--headless=new")
-        else:
-            options.add_argument("--start-maximized")
-        options.add_experimental_option("detach", True)
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--remote-allow-origins=*")
+        opts = webdriver.ChromeOptions()
+        opts.add_argument("--start-maximized" if not HEADLESS else "--headless=new")
+        opts.add_experimental_option("detach", True)
+        opts.add_argument("--no-sandbox"); opts.add_argument("--disable-dev-shm-usage"); opts.add_argument("--disable-gpu"); opts.add_argument("--disable-extensions"); opts.add_argument("--remote-allow-origins=*")
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
+        driver.implicitly_wait(IMPLICIT_WAIT); st.session_state.driver = driver
+        driver.get(PAGE_URL); wait = WebDriverWait(driver, 12)
 
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        driver.implicitly_wait(IMPLICIT_WAIT)
-        st.session_state.driver = driver
+        try: driver.find_element(By.ID, "product-3-3").click()
+        except: radios = driver.find_elements(By.CSS_SELECTOR, "input[type='radio'][name^='product_id_page-0']"); radios[0].click() if radios else None
 
-        driver.get(PAGE_URL)
-        wait = WebDriverWait(driver, 12)
-
-        # Select product
-        try:
-            radio = wait.until(EC.element_to_be_clickable((By.ID, "product-3-3")))
-            driver.execute_script("arguments[0].scrollIntoView(true);", radio)
-            radio.click()
-        except Exception:
-            radios = driver.find_elements(By.CSS_SELECTOR, "input[type='radio'][name^='product_id_page-0']")
-            if radios:
-                radios[0].click()
-
-        # Generate credentials
-        full_name = random_name()
-        username = random_username()
-        email = random_email(name_hint=username)
-        password = "111111"
-
-        # Fill form
+        full_name, username, email, password = rand_name(), rand_username(), rand_email(), "111111"
         driver.find_element(By.NAME, "_name").send_keys(full_name)
         driver.find_element(By.NAME, "email").send_keys(email)
         driver.find_element(By.NAME, "login").send_keys(username)
         driver.find_element(By.NAME, "pass").send_keys(password)
 
-        # Select country
+        try: select_el = Select(driver.find_element(By.ID, "f_country")); country_used = choose_country(select_el); select_el.select_by_value(country_used)
+        except: country_used = DEFAULT_COUNTRY_CODE
+
+        try: driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "iframe[title='reCAPTCHA']")); driver.find_element(By.ID,"recaptcha-anchor").click(); driver.switch_to.default_content()
+        except: pass
+
+        try: next_btn = driver.find_element(By.ID,"_qf_page-0_next-0"); next_btn.click() if next_btn.is_enabled() else None
+        except: st.info("Solve reCAPTCHA manually in Chrome before clicking 'Next'.")
+
         try:
-            select_el = Select(driver.find_element(By.ID, "f_country"))
-            chosen_value = choose_country_value(select_el, randomize=RANDOMIZE_COUNTRY)
-            select_el.select_by_value(chosen_value)
-            country_used = chosen_value
-        except Exception:
-            country_used = DEFAULT_COUNTRY_CODE
+            oto_div = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.CSS_SELECTOR,"div.am-body-content-content")))
+            oto_text = oto_div.text
+            if "This is a One Time Offer Deal that you never see anywhere!" in oto_text: st.success("✅ Signup successful! One Time Offer detected:")
+            else: st.warning("⚠️ Signup failed! One Time Offer content not found.")
+        except: st.error("❌ Signup failed! Failed to detect One Time Offer content.")
 
-        # Handle reCAPTCHA manually
-        try:
-            recaptcha_iframe = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "iframe[title='reCAPTCHA']")))
-            driver.switch_to.frame(recaptcha_iframe)
-            checkbox = wait.until(EC.element_to_be_clickable((By.ID, "recaptcha-anchor")))
-            checkbox.click()
-            st.info("Solve reCAPTCHA manually in Chrome.")
-            driver.switch_to.default_content()
-        except Exception as e:
-            st.warning(f"Cannot click reCAPTCHA automatically: {e}")
+        return {"full_name":full_name,"username":username,"email":email,"password":password,"country":country_used,"driver":driver}
 
-        return {
-            "full_name": full_name,
-            "username": username,
-            "email": email,
-            "password": password,
-            "country": country_used,
-            "driver": driver
-        }
-
-    # ---------------- Buttons ----------------
     if st.button("Generate Account") and st.session_state.driver is None:
         creds = run_browser()
-        # Show credentials
         st.subheader("Generated Credentials")
-        st.write(f"**Name:** {creds['full_name']}")
-        st.write(f"**Email:** {creds['email']}")
-        col1, col2 = st.columns([3,1])
-        with col1:
-            st.write(f"**Username:** {creds['username']}")
-        with col2:
-            copyable_text("Username", creds['username'])
-        col1, col2 = st.columns([3,1])
-        with col1:
-            st.write(f"**Password:** {creds['password']}")
-        with col2:
-            copyable_text("Password", creds['password'])
+        st.write(f"**Name:** {creds['full_name']}"); st.write(f"**Email:** {creds['email']}")
+        col1,col2 = st.columns([3,1]); col1.write(f"**Username:** {creds['username']}"); copyable_text("Username", creds['username'])
+        col1,col2 = st.columns([3,1]); col1.write(f"**Password:** {creds['password']}"); copyable_text("Password", creds['password'])
         st.write(f"**Country:** {creds['country']}")
-        st.markdown(
-            f'<a href="https://4dinsingapore.com/amember/member/index" target="_blank">Go to aMember Member Index</a>',
-            unsafe_allow_html=True
-        )
+        st.markdown('<a href="https://4dinsingapore.com/amember/member/index" target="_blank">Go to aMember Member Index</a>', unsafe_allow_html=True)
 
     if st.session_state.driver:
         st.info("Chrome is detached and remains open. Solve reCAPTCHA manually.")
         if st.button("Close Browser"):
-            try:
-                st.session_state.driver.quit()
-                st.session_state.driver = None
-                st.success("Browser closed.")
-            except Exception as e:
-                st.error(f"Error closing browser: {e}")
+            try: st.session_state.driver.quit(); st.session_state.driver=None; st.success("Browser closed.")
+            except Exception as e: st.error(f"Error closing browser: {e}")
