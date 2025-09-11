@@ -166,10 +166,6 @@ def run_script():
         finally:
             driver.switch_to.default_content()
 
-    finally:
-        driver.quit()
-
-
 def runAccGen():
     # Compact, stylish title banner
     st.markdown(
