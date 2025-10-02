@@ -37,15 +37,16 @@ def run_Scraping(numberList, genPermutation):
         }
 
         def getDateFromDrawDate(x):
-            if not x:  # x is None, empty string, or False
-                return None  # or return '' if you prefer
+            if not x:
+                return None
             try:
                 x = x.replace('/Date(', '').replace(')/', '')
+                from datetime import datetime, timezone, timedelta
+                sg_tz = timezone(timedelta(hours=8))  # Singapore UTC+8
                 utc_time = datetime.fromtimestamp(int(x) / 1000, tz=timezone.utc)
-                local_time = utc_time.astimezone()  # convert to local timezone
-                return local_time.strftime('%Y-%m-%d')
-            except Exception as e:
-                print(f"Error parsing DrawDate '{x}': {e}")
+                sg_time = utc_time.astimezone(sg_tz)
+                return sg_time.strftime('%Y-%m-%d')
+            except:
                 return None
 
         def GetResultsJson(num):
