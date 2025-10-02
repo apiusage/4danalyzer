@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from lxml import etree
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 import pandas as pd
 import base64
 import itertools
@@ -37,10 +37,16 @@ def run_Scraping(numberList, genPermutation):
         }
 
         def getDateFromDrawDate(x):
-            x = x.replace('/Date(', '').replace(')/', '')
-            local_time = datetime.fromtimestamp(int(x) / 1000)
-            # local_time += timedelta(days=1)
-            return local_time.strftime('%Y-%m-%d')
+            if not x:  # x is None, empty string, or False
+                return None  # or return '' if you prefer
+            try:
+                x = x.replace('/Date(', '').replace(')/', '')
+                utc_time = datetime.fromtimestamp(int(x) / 1000, tz=timezone.utc)
+                local_time = utc_time.astimezone()  # convert to local timezone
+                return local_time.strftime('%Y-%m-%d')
+            except Exception as e:
+                print(f"Error parsing DrawDate '{x}': {e}")
+                return None
 
         def GetResultsJson(num):
             data = json.dumps({"numbers": [str(num).zfill(4)], "checkCombinations": "true", "sortTypeInteger": "1"})
