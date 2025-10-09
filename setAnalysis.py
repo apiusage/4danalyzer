@@ -355,7 +355,7 @@ def digitSumTable():
         return
 
     # Last 50 draws table
-    st.markdown("### 📊 Last 50 Draws with All Prizes & Digit Sums")
+    st.markdown("### 📊 Last 200 Draws with All Prizes & Digit Sums")
     wide_df = df[['DrawDate', '1st', '2nd', '3rd']].copy()
     for col in ['1st', '2nd', '3rd']:
         wide_df[col] = wide_df[col].apply(lambda x: str(x).zfill(4) if str(x).isdigit() else x)
@@ -365,7 +365,7 @@ def digitSumTable():
 
     st.dataframe(
         wide_df[['DrawDate', '1st', '2nd', '3rd', 'sum_1st', 'sum_2nd', 'sum_3rd']]
-        .tail(50)
+        .tail(200)
         .iloc[::-1]  # flip so latest draw is first
         .rename(columns={
             'DrawDate': 'Date',
