@@ -35,7 +35,7 @@ def get_from_latest_drawno(number: str, permutation: str, retries=3, delay=3):
 
     for attempt in range(retries):
         try:
-            r = scraper.get(url, headers=headers, timeout=20)
+            r = scraper.get(url, headers=headers, timeout=60)
             if r.status_code != 200:
                 return {"digit": number, "From Latest DrawNo": f"HTTP {r.status_code}", "url": url}
 
