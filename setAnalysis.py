@@ -15,7 +15,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import concurrent.futures
-from predict_4d_numbers import *
+
 # ────────────────────────────────────────────────────────────────
 # 🔧 GLOBAL CONSTANTS
 # ────────────────────────────────────────────────────────────────
