@@ -52,15 +52,6 @@ def run_setAnalysis():
 
     digitSumTable()
 
-    # Fetch top 10 numbers
-    top_numbers = predict_4d_numbers(top_n=10)
-    df_top = pd.DataFrame(top_numbers, columns=["Number", "Score"])
-    df_top["Score"] = df_top["Score"].apply(lambda x: f"{x:.4f}")  # format score
-    # Sort by Score descending
-    df_top = df_top.sort_values(by="Score", ascending=False).reset_index(drop=True)
-    st.success("Top Suggested 4D Numbers")
-    st.dataframe(df_top, use_container_width=True)  # index removed
-
     # quick 2-D numbers
     out1, out2 = get_2d()
     st.write("**2D:**", out1, out2)
