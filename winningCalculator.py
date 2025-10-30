@@ -7,66 +7,9 @@ def run_WinningCalculator():
     # Title banner
     st.markdown(
         """
-        <div style="background-color:#464e5f;padding:2px;border-radius:15px;text-align:center;">
-            <h1 style="color:white;">💰 Win How Much? 💰</h1>
+        <div class="title-banner">
+            <h1>💰 Win How Much? 💰</h1>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # CSS for first column and Big/Small columns
-    st.markdown(
-        """
-        <style>
-        /* Stack columns on small screens */
-        @media (max-width: 600px) {
-            div[data-testid="column"] {
-                width: 100% !important;
-                flex: unset !important;
-            }
-        }
-
-        /* Make table scrollable horizontally */
-        .responsive-table {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        th, td {
-            padding: 6px 8px;
-            text-align: center;
-            border: 1px solid #ddd;
-            white-space: nowrap;
-        }
-
-        th {
-            background-color: #464e5f;
-            color: white;
-        }
-
-        /* First column like header */
-        td:first-child {
-            background-color: #464e5f;
-            color: white;
-            font-weight: bold;
-        }
-
-        /* Big columns (Big Prize, Big Bet, Big Actual) */
-        td:nth-child(3), td:nth-child(4), td:nth-child(5) {
-            background-color: #d1e7dd; /* light green */
-        }
-
-        /* Small columns (Small Prize, Small Bet, Small Actual) */
-        td:nth-child(6), td:nth-child(7), td:nth-child(8) {
-            background-color: #f8d7da; /* light red/pink */
-        }
-
-        </style>
         """,
         unsafe_allow_html=True,
     )

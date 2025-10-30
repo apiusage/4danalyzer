@@ -1,0 +1,99 @@
+/* ================ Menu ================ */
+/* Container */
+.option-menu-container {
+    padding: 5px !important;
+    background-color: #fafafa;
+}
+/* Icons */
+.option-menu-container .bi,
+.option-menu-container .iconify {
+    color: orange;
+    font-size: 16px;
+}
+/* Navigation links */
+.option-menu-container .nav-link {
+    font-size: 16px;
+    text-align: left;
+    margin: 0px;
+}
+.option-menu-container .nav-link:hover {
+    background-color: #eee;
+}
+/* Selected link */
+.option-menu-container .nav-link-selected {
+    background-color: #02ab21;
+}
+
+/* ================ 4D gen ================ */
+.header-card {
+    background: linear-gradient(135deg, #5b6278, #464e5f, #6a5f95);
+    padding: 15px 20px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+    margin-bottom: 20px;
+}
+.header-card h1 {
+    color: white;
+    font-family: Arial,sans-serif;
+    margin: 0;
+    font-size: 1.8em;
+    line-height: 1.2;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+.header-card p {
+    color: #d1d5db;
+    margin: 3px 0 0 0;
+    font-size: 0.95em;
+}
+
+/* ================ Winning calculator ================ */
+@media (max-width: 600px) {
+    div[data-testid="column"] {
+        width: 100% !important;
+        flex: unset !important;
+    }
+}
+/* Make table scrollable horizontally */
+.responsive-table {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+th, td {
+    padding: 6px 8px;
+    text-align: center;
+    border: 1px solid #ddd;
+    white-space: nowrap;
+}
+th {
+    background-color: #464e5f;
+    color: white;
+}
+/* First column like header */
+td:first-child {
+    background-color: #464e5f;
+    color: white;
+    font-weight: bold;
+}
+/* Big columns (Big Prize, Big Bet, Big Actual) */
+td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+    background-color: #d1e7dd; /* light green */
+}
+/* Small columns (Small Prize, Small Bet, Small Actual) */
+td:nth-child(6), td:nth-child(7), td:nth-child(8) {
+    background-color: #f8d7da; /* light red/pink */
+}
+/* Title banner */
+.title-banner {
+    background-color: #464e5f;
+    padding: 2px;
+    border-radius: 15px;
+    text-align: center;
+}
+.title-banner h1 {
+    color: white;
+}

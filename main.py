@@ -1,3 +1,5 @@
+import streamlit as st
+from pathlib import Path
 from PIL import Image
 from setAnalysis import run_setAnalysis
 from setHistory import *
@@ -14,17 +16,29 @@ PAGE_CONFIG = {
 }
 st.set_page_config(**PAGE_CONFIG)
 
-LOGO_BANNER = """
-    <div style="background-color:#6a0575;padding:10px;border-radius:10px">
-    <h1 style="color:white;text-align:center;"> 4D Analyzer </h1>
-    </div>
-    """
+@st.cache_resource
+def setup():
+    # Only cache non-config setup tasks
+    st.markdown(f"<style>{Path('style.css').read_text()}</style>", unsafe_allow_html=True)
 
-def main():
+def optionMenu():
+    option = option_menu(
+        "4D Analyzer",
+        ["Set History", "In-Depth Analysis", "Winning Calculator", "4DinSG", "About"],
+        icons=['house-heart-fill', 'graph-up', 'calculator', 'bi bi-person-circle', 'question-circle'],
+        orientation="horizontal",
+        menu_icon="dice-4-fill",
+        default_index=0,
+        key="main_menu",
+    )
+    return option
+
+if __name__ == '__main__':
+    setup()
     choice = optionMenu()
 
     if choice == "Set History":
-         run_setHistory()
+        run_setHistory()
     elif choice == "In-Depth Analysis":
         run_setAnalysis()
     elif choice == "Winning Calculator":
@@ -48,21 +62,3 @@ def main():
         st.write("By accessing this website, you are responsible for \
                  the agreement with any applicable local laws.")
         st.balloons()
-
-def optionMenu():
-    option = option_menu("4D Analyzer",
-                         ["Set History", "In-Depth Analysis", "Winning Calculator", "4DinSG", "About"],
-                         icons=['house-heart-fill', 'graph-up', 'calculator', 'bi bi-person-circle', 'question-circle'],
-                         orientation="horizontal", menu_icon="dice-4-fill", default_index=0,
-                         styles={
-                             "container": {"padding": "5!important", "background-color": "#fafafa"},
-                             "icon": {"color": "orange", "font-size": "16px"},
-                             "nav-link": {"font-size": "16px", "text-align": "left", "margin": "0px",
-                                          "--hover-color": "#eee"},
-                             "nav-link-selected": {"background-color": "#02ab21"},
-                         }
-                         )
-    return option
-
-if __name__ == '__main__':
-    main()

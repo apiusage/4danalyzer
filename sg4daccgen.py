@@ -139,9 +139,9 @@ def run_browser():
 # ---------------- STREAMLIT ----------------
 def runAccGen():
     st.markdown("""
-    <div style="background:linear-gradient(90deg,#5b6278,#464e5f);padding:10px 15px;border-radius:12px;text-align:center;box-shadow:0 3px 8px rgba(0,0,0,0.2);margin-bottom:15px;">
-        <h1 style="color:white;font-family:Arial,sans-serif;margin:0;font-size:1.8em;line-height:1.2;text-shadow:1px 1px 2px rgba(0,0,0,0.3)">4DinSingapore Acc Gen</h1>
-        <p style="color:#d1d5db;margin:3px 0 0 0;font-size:0.95em;">Auto-fill your aMember signup form</p>
+    <div class="header-card">
+        <h1>4DinSingapore Acc Gen</h1>
+        <p>Auto-fill your aMember signup form</p>
     </div>
     """, unsafe_allow_html=True)
 
