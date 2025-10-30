@@ -14,7 +14,7 @@ def run_WinningCalculator():
         unsafe_allow_html=True,
     )
 
-    # ✅ Responsive CSS (columns + table)
+    # CSS for first column and Big/Small columns
     st.markdown(
         """
         <style>
@@ -25,25 +25,47 @@ def run_WinningCalculator():
                 flex: unset !important;
             }
         }
+
         /* Make table scrollable horizontally */
         .responsive-table {
             overflow-x: auto;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
         }
+
         th, td {
             padding: 6px 8px;
             text-align: center;
             border: 1px solid #ddd;
             white-space: nowrap;
         }
+
         th {
             background-color: #464e5f;
             color: white;
         }
+
+        /* First column like header */
+        td:first-child {
+            background-color: #464e5f;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Big columns (Big Prize, Big Bet, Big Actual) */
+        td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+            background-color: #d1e7dd; /* light green */
+        }
+
+        /* Small columns (Small Prize, Small Bet, Small Actual) */
+        td:nth-child(6), td:nth-child(7), td:nth-child(8) {
+            background-color: #f8d7da; /* light red/pink */
+        }
+
         </style>
         """,
         unsafe_allow_html=True,
@@ -89,10 +111,10 @@ def run_WinningCalculator():
 
     df = pd.DataFrame(rows)
 
-    # ✅ Remove the left numbering column
+    # Remove the left numbering column
     df = df.reset_index(drop=True)
 
-    # ✅ Wrap table in scrollable div
+    # Wrap table in scrollable div
     st.markdown(
         f"""
         <div class="responsive-table">
@@ -101,7 +123,6 @@ def run_WinningCalculator():
         """,
         unsafe_allow_html=True,
     )
-
     show_4d_bet_types()
 
 def show_4d_bet_types():
