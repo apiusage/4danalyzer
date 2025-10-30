@@ -97,3 +97,20 @@ td:nth-child(6), td:nth-child(7), td:nth-child(8) {
 .title-banner h1 {
     color: white;
 }
+
+/* Force center headers, overriding inline styles on tr */
+.dataframe thead th {
+    text-align: center !important;
+}
+
+/* Also center table body cells */
+.dataframe tbody td {
+    text-align: center;
+}
+
+/* Optional: center links inside cells */
+.dataframe tbody td a {
+    display: inline-block;
+    text-align: center;
+}
+
